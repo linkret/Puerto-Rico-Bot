@@ -1,8 +1,12 @@
 ## About
 
-This repository contains bots for playing the popular board game Puerto Rico, written in C++.
+This repository contains bots for playing the popular board game **Puerto Rico**, written in C++.
 
-**Puerto Rico** is a 3-5 player resource management game, similiar to "Castles of Burgundy" and "Settlers of Catan".
+Puerto Rico is a 3-5 player resource management game, similiar to "Castles of Burgundy" and "Settlers of Catan".
+
+The rulebook can be found here: https://www.riograndegames.com/wp-content/uploads/2013/02/Puerto-Rico-Rules.pdf
+
+![alt text](https://i0.wp.com/boardgamedragons.com/wp-content/uploads/2012/04/IMG_23301.jpg)
 
 ## Strategies / Algorithms used
 
@@ -14,6 +18,8 @@ Studying which buildings and moves have high "rewards" in the heuristic function
 
 The stronger bots will use the **Monte Carlo Tree Search** algorithm to simulate random-runouts, allowing them to find strong moves without relying on any domain-specific evaluation function.
 This method is used by famous bots such as AlphaGo and AlphaZero. The end goal is to make the bots unbeatable by normal humans. The MCTS algorithm can also be augmented by a strong heuristic to play even better. (Not yet implemented.)
+
+Read more about MTCS here: https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
 
 Currently running main.cpp will simulate a random game of Puerto Rico played by 4 very bad bots who just make random legal moves. Information about every move and event is printed to the console.
 Initially the goal was to implement and verify 100% of the game rules (which there are a lot of).
