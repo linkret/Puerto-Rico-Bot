@@ -176,7 +176,7 @@ struct MayorAllocation {
 };
 
 struct PlayerState {
-    const int player_idx;
+    const int idx;
 
     int doubloons;
     int victory_points = 0;
@@ -186,7 +186,7 @@ struct PlayerState {
     std::vector<BuildingState> buildings;
     int free_town_space = 12;
 
-    PlayerState(int player_count, int player_idx) : player_idx(player_idx) {
+    PlayerState(int player_count, int player_idx) : idx(player_idx) {
         plantations.reserve(12);
         buildings.reserve(12);
 
@@ -271,9 +271,9 @@ struct PlayerState {
         return total_colonists;
     }
 
-    int get_querry_count() const {
-        return std::count_if(plantations.begin(), plantations.end(), [](const PlantationState& plantation) {
-            return plantation.plantation == Plantation::QUARRY && plantation.colonists == 1;
+    int get_querry_count(bool all_quarries = false) const {
+        return std::count_if(plantations.begin(), plantations.end(), [all_quarries](const PlantationState& plantation) {
+            return plantation.plantation == Plantation::QUARRY && (all_quarries || plantation.colonists == 1);
         });
     }
 
@@ -315,9 +315,14 @@ struct PlayerState {
 };
 
 struct Ship {
+    static const int WHARF_CAPACITY = 100;
+
     int capacity;
     Good good;
     int good_count;
+    int owner = -1;
+
+    bool is_wharf() const { return owner != -1; }
 };
 
 enum RuleSet {
@@ -340,11 +345,13 @@ struct Action {
 
     Action(PlayerRole type) : type(type) {}
     Action(Building building, int cost) : type(PlayerRole::BUILDER), building(building), building_cost(cost) {}
-    Action(Plantation plantation) : type(PlayerRole::SETTLER), plantation(plantation) {}
+    Action(Plantation plantation, bool hacienda = false) : type(PlayerRole::SETTLER), plantation(plantation), building_cost(hacienda) {}
     Action(Good good) : type(PlayerRole::CRAFTSMAN), good(good) {}
     Action(Good good, int price) : type(PlayerRole::TRADER), good(good), sell_price(price) {}
     Action(MayorAllocation allocation) : type(PlayerRole::MAYOR), mayor_allocation(allocation) {}
     Action(int ship_capacity, Good good, int bonus) : type(PlayerRole::CAPTAIN), good(good), ship_capacity(ship_capacity), sell_price(bonus) {}
+    Action(ProductionDistribution dist, int bonus) // for storing Goods after Captain phase
+        : good(Good::NONE), type(PlayerRole::CAPTAIN), sell_price(bonus), mayor_allocation(dist, {}, 0) {}
 };
 
 class GameState {
@@ -360,14 +367,14 @@ class GameState {
     int current_round_player_idx = 0;
     int current_player_idx = 0;
     int winner = -1;
+    std::vector<int> player_placements;
     PlayerRole current_role = PlayerRole::NONE;
     std::vector<RoleState> role_state;
 
     int colonist_supply;
     int colonist_ship;
-    int colonists_for_player[5] = {0, 0, 0, 0, 0}; // how many each player can take durring the Mayor phase
+    int colonists_for_player[5] = {0, 0, 0, 0, 0}; // how many each player will take durring the Mayor phase
     int victory_points_supply;
-    // int doubloons_supply; // 96, probably not needed
 
     std::vector<GoodSupply> good_supply;
 
@@ -375,6 +382,7 @@ class GameState {
     std::vector<Plantation> plantation_supply;
     std::vector<Plantation> plantation_offer;
     std::vector<Plantation> plantation_discard;
+    bool hacienda_just_used = false;
 
     std::vector<BuildingSupply> building_supply;
     
@@ -385,6 +393,7 @@ class GameState {
     std::vector<PlayerState> player_state;
 
 public:
+    // TODO: make Config struct with all parameters (there will be more of them in the future)
     GameState(int player_count, bool verbose = false) 
         : player_count(player_count), verbose(verbose)
     {
@@ -401,10 +410,10 @@ public:
             {PlayerRole::CAPTAIN, false, 0}
         };
 
-        if (player_count == 4) {
+        if (player_count >= 4) {
             role_state.push_back({PlayerRole::PROSPECTOR, false, 0});
-        } else if (player_count == 5) {
-            role_state.push_back({PlayerRole::PROSPECTOR, false, 0});
+        }
+        if (player_count == 5) {
             role_state.push_back({PlayerRole::PROSPECTOR_2, false, 0});
         }
 
@@ -493,9 +502,9 @@ public:
         };
 
         ships = {
-            {player_count + 1, Good::CORN, 0},
-            {player_count + 2, Good::CORN, 0},
-            {player_count + 3, Good::CORN, 0}
+            {player_count + 1, Good::NONE, 0},
+            {player_count + 2, Good::NONE, 0},
+            {player_count + 3, Good::NONE, 0}
         };
 
         trading_house.reserve(4);
@@ -616,32 +625,38 @@ public:
         std::vector<Action> actions;
 
         bool can_choose_quarry = is_settler;
+        bool has_hacienda = false;
 
         for (const auto& building : player.buildings) {
-            if (building.building.type == BuildingType::CONSTRUCTION_HUT && building.colonists == 1) {
+            if (building.colonists == 0)
+                continue;
+            if (building.building.type == BuildingType::CONSTRUCTION_HUT)
                 can_choose_quarry = true;
-                break;
-            }
+            if (building.building.type == BuildingType::HACIENDA)
+                has_hacienda = true;
         }
 
-        if (can_choose_quarry && quarry_supply > 0) {
-            actions.emplace_back(Plantation::QUARRY);
+        int pcnt = player.plantations.size();
+
+        if (has_hacienda && !hacienda_just_used && pcnt < 12) {
+            actions.emplace_back(Plantation::NONE, true); // use Hacienda
+            if (pcnt < 11)
+                return actions; // always uses Hacienda if there's at least 2 free spaces left
         }
+
+        if (can_choose_quarry && quarry_supply > 0 && pcnt < 12)
+            actions.emplace_back(Plantation::QUARRY);
 
         // Remove duplicates to prune the search tree
         std::set<Plantation> plantation_set(plantation_offer.begin(), plantation_offer.end());
 
         for (const auto& plantation : plantation_set) {
-            // do not allow settling if not enough space // Redundant check, can be removed
-            if (player.plantations.size() >= 12)
-                continue;
-
-            actions.emplace_back(plantation);
+            if (pcnt < 12)
+                actions.emplace_back(plantation);
         }
 
-        if (actions.empty()) {
-            actions.emplace_back(Plantation::NONE);
-        }
+        if (actions.empty())
+            actions.emplace_back(Plantation::NONE); // we don't do this otherwise, even though it's legal
 
         return actions;
     }
@@ -722,7 +737,8 @@ public:
         std::vector<Action> actions;
 
         if (mayor) {
-            
+            std::fill(colonists_for_player, colonists_for_player + 5, 0);
+
             colonists_for_player[current_player_idx] += (mayor && colonist_supply > 0); // TODO: Mayor bonus could be refused, but we always accept it for now
 
             for (int i = 0; i < colonist_ship; i++) {
@@ -739,7 +755,7 @@ public:
         }
 
         auto max_goods = player.get_producing_goods(true); // theoretical maximum goods produced
-        int querries = player.get_querry_count();
+        int querries = player.get_querry_count(true);
         int max_employed = max_goods[0].count + 2 * max_goods[1].count + 2 * max_goods[2].count + 2 * max_goods[3].count + 2 * max_goods[4].count + querries;
 
         int DISTRIBUTION_LIMIT = 100; // arbitrary limit
@@ -827,14 +843,28 @@ public:
     std::vector<Action> get_legal_captain_actions(const PlayerState& player, bool captain = false) {
         std::vector<Action> actions;
 
-        // TODO: Wharf
+        bool has_wharf = false;
+        for (const auto& building : player.buildings) {
+            if (building.colonists == 0)
+                continue;
+
+            if (building.building.type == BuildingType::WHARF)
+                has_wharf = true;
+        }
 
         for (const auto& ship : ships) {
+            if (ship.is_wharf() && !(has_wharf && ship.owner == player.idx))
+                continue;
+
             for (int i = 0; i < 5; i++) {
                 Good g = static_cast<Good>(i);
 
-                // do not allow shipping the same Good on more ships
+                // do not allow shipping the same Good on more public ships
                 for (const auto& other_ship : ships) {
+                    if (ship.is_wharf()) // Can ship anything
+                        break;
+                    if (other_ship.is_wharf()) // Does not limit other ships
+                        continue;
                     if (other_ship.good == g && other_ship.good_count > 0 && ship.capacity != other_ship.capacity) {
                         goto next_good;
                     }
@@ -848,8 +878,53 @@ public:
             }
         }
 
-        if (actions.empty()) {
-            actions.emplace_back(0, Good::NONE, captain);
+        if (actions.empty()) { // throw away remaining goods, save some in warehouses
+            int can_store_types = 0;
+            for (const auto& building : player.buildings) {
+                if (building.colonists == 0)
+                    continue;
+
+                if (building.building.type == BuildingType::SMALL_WAREHOUSE) 
+                    can_store_types += 1;
+                if (building.building.type == BuildingType::LARGE_WAREHOUSE)
+                    can_store_types += 2;
+            }
+
+            int good_type_cnt = 0;
+            int alone_good_cnt = 0;
+            for (int i = 0; i < 5; i++) {
+                if (player.goods[i] > 0)
+                    good_type_cnt++;
+                if (player.goods[i] == 1)
+                    alone_good_cnt++;
+            }
+
+            if (good_type_cnt <= can_store_types || (good_type_cnt == 1 + can_store_types && alone_good_cnt > 0)) {
+                // can store everything
+                actions.emplace_back(ProductionDistribution{player.goods[0], player.goods[1], player.goods[2], player.goods[3], player.goods[4], 0}, captain);
+            } else {
+                // greedily store the most abundant goods - tiebreaker higher value
+                int stored_goods[5] = {0, 0, 0, 0, 0};
+                std::vector<std::pair<int, int>> goods; // (good_count, good_index)
+                for (int i = 0; i < 5; i++) {
+                    goods.emplace_back(player.goods[i], i);
+                }
+                std::sort(goods.begin(), goods.end(), std::greater<std::pair<int, int>>());
+
+                for (int i = 0; i < can_store_types; i++) {
+                    stored_goods[goods[i].second] = player.goods[goods[i].second];
+                }
+
+                // store one aditional highest-value good
+                for (int i = 4; i >= 0; i--) {
+                    if (player.goods[i] >= 1 && stored_goods[i] == 0) {
+                        stored_goods[i] = 1;
+                        break;
+                    }
+                }
+
+                actions.emplace_back(ProductionDistribution{stored_goods[0], stored_goods[1], stored_goods[2], stored_goods[3], stored_goods[4], 0}, captain);
+            }
         }
 
         return actions;
@@ -863,27 +938,27 @@ public:
         auto& role = role_state[role_idx];
 
         if (verbose && role.doubloons > 0)
-            std::cout << "Player " << player.player_idx << " got " << role.doubloons << " extra doubloons" << std::endl;
+            std::cout << "Player " << player.idx << " got " << role.doubloons << " extra doubloons" << std::endl;
 
         role.taken = true;
         player.doubloons += role.doubloons;
         role.doubloons = 0;
 
         if (action.type == PlayerRole::PROSPECTOR) {
-            player_state[player.player_idx].doubloons += 1;
+            player_state[player.idx].doubloons += 1;
             if (verbose)
-                std::cout << "Player " << player.player_idx << " chose Prospector and got 1 doubloon" << std::endl;
+                std::cout << "Player " << player.idx << " chose Prospector and got 1 doubloon" << std::endl;
             next_round();
         }
         else if (action.type == PlayerRole::PROSPECTOR_2) {
-            player_state[player.player_idx].doubloons += 1;
+            player_state[player.idx].doubloons += 1;
             if (verbose)
-                std::cout << "Player " << player.player_idx << " chose Prospector(2) and got 1 doubloon" << std::endl;
+                std::cout << "Player " << player.idx << " chose Prospector(2) and got 1 doubloon" << std::endl;
             next_round();
         }
         else if (action.type == PlayerRole::CRAFTSMAN) {
             if (verbose)
-                std::cout << "Player " << player.player_idx << " chose Craftsman:" << std::endl;
+                std::cout << "Player " << player.idx << " chose Craftsman:" << std::endl;
 
             for (int i = 0; i < player_count; i++) {
                 int pidx = (current_player_idx + i) % player_count;
@@ -891,8 +966,20 @@ public:
                 auto& player = player_state[pidx];
                 auto producing = player.get_producing_goods();
 
+                bool has_factory = false;
+                for (const auto& building : player.buildings) {
+                    if (building.colonists == 0)
+                        continue;
+                    if (building.building.type == BuildingType::FACTORY) {
+                        has_factory = true;
+                        break;
+                    }
+                }
+
                 if (verbose)
                     std::cout << "Player " << pidx << " got: ";
+
+                int factory_doubloons = 0;
 
                 for (const auto& produces : producing) {
                     int gidx = static_cast<int>(produces.good);
@@ -903,10 +990,17 @@ public:
                     
                     player.goods[gidx] += production_count;
                     good_supply[gidx].count -= production_count;
+                    if (production_count > 0 && has_factory)
+                        factory_doubloons += 1;
                 }
-
                 if (verbose)
                     std::cout << std::endl;
+
+                if (has_factory && factory_doubloons > 1) {
+                    player.doubloons += factory_doubloons - 1;
+                    if (verbose)
+                        std::cout << "Player " << pidx << " got " << factory_doubloons - 1 << " extra doubloons from Factory" << std::endl;
+                }
             }
 
             if (action.good != Good::NONE) {
@@ -929,7 +1023,34 @@ public:
                 std::cout << "Player " << current_player_idx << " chose Builder:" << std::endl;
 
             if (action.building.type != BuildingType::NONE) {
-                player.buildings.push_back({action.building, 0});
+                bool has_university = false;
+                for (const auto& building : player.buildings) {
+                    if (building.colonists == 0)
+                        continue;
+                    if (building.building.type == BuildingType::UNIVERSITY) {
+                        has_university = true;
+                        break;
+                    }
+                }
+
+                if (has_university) {
+                    if (colonist_supply > 0) {
+                        colonist_supply -= 1;
+
+                        if (verbose)
+                            std::cout << "Player " << current_player_idx << " assigned a Colonist from the supply because of University" << std::endl;
+                    }
+                    else if (colonist_ship > 0) {
+                        colonist_ship -= 1;
+
+                        if (verbose)
+                            std::cout << "Player " << current_player_idx << " assigned a Colonist from the ship because of University" << std::endl;
+                    }
+                    else 
+                        has_university = false; // no extra Colonist
+                }
+
+                player.buildings.push_back({action.building, has_university}); // only comes with a Colonist from University
                 player.doubloons -= action.building_cost;
                 player.free_town_space -= (action.building.cost == 10) ? 2 : 1;
 
@@ -943,6 +1064,9 @@ public:
 
                 bit->count--; // one less instance of this building available
 
+                if (action.building.type == BuildingType::WHARF)
+                    ships.push_back({Ship::WHARF_CAPACITY, Good::NONE, 0, player.idx}); // new private ship with effectively infinite capacity
+
                 if (verbose)
                     std::cout << "Player " << current_player_idx << " built a " << BuildingNames[static_cast<int>(action.building.type)]
                         << " for " << action.building_cost << " doubloons" << std::endl;
@@ -954,13 +1078,54 @@ public:
             next_player();
         }
         else if (action.type == PlayerRole::SETTLER) {
-            if (verbose && current_player_idx == current_round_player_idx)
+            if (verbose && current_player_idx == current_round_player_idx && !hacienda_just_used)
                 std::cout << "Player " << current_player_idx << " chose Settler:" << std::endl;
 
-            if (action.plantation != Plantation::NONE) {
-                player.plantations.push_back({action.plantation, 0});
+            if (action.building_cost > 0) {
+                // Hacienda used
+                auto random_plantation = plantation_supply.back();
+                player.plantations.push_back({random_plantation, 0});
+                plantation_supply.pop_back();
 
-                // TODO: implement Hacienda, Hospice, Construction Hut triggers for Settler phase
+                if (verbose)
+                    std::cout << "Player " << player.idx << " randomly settled a " << PlantationNames[static_cast<int>(random_plantation)] << " tile from Hacienda" << std::endl;
+
+                hacienda_just_used = true;
+                return; // purpesfully don't call next_player() - Hacienda allows for a second (normal) plantation choice
+            }
+
+            hacienda_just_used = false;
+
+            if (action.plantation != Plantation::NONE) {
+                // TODO: implement Hospice triggers for Settler phase
+                bool has_hospice = false;
+                for (const auto& building : player.buildings) {
+                    if (building.colonists == 0)
+                        continue;
+                    if (building.building.type == BuildingType::HOSPICE) {
+                        has_hospice = true;
+                        break;
+                    }
+                }
+
+                if (has_hospice) {
+                    if (colonist_supply > 0) {
+                        colonist_supply -= 1;
+
+                        if (verbose)
+                            std::cout << "Player " << current_player_idx << " assigned a Colonist to their plantation from the supply because of Hospice" << std::endl;
+                    }
+                    else if (colonist_ship > 0) {
+                        colonist_ship -= 1;
+
+                        if (verbose)
+                            std::cout << "Player " << current_player_idx << " assigned a Colonist to their plantation from the ship because of Hospice" << std::endl;
+                    }
+                    else 
+                        has_hospice = false; // no extra Colonist available
+                }
+
+                player.plantations.push_back({action.plantation, has_hospice});
 
                 if (action.plantation == Plantation::QUARRY) {
                     quarry_supply--;
@@ -972,7 +1137,7 @@ public:
                 }
 
                 if (verbose)
-                    std::cout << "Player " << current_player_idx << " settled a new " << PlantationNames[static_cast<int>(action.plantation)] << " tile " << std::endl;
+                    std::cout << "Player " << player.idx << " settled a new " << PlantationNames[static_cast<int>(action.plantation)] << " tile " << std::endl;
             }
 
             next_player();
@@ -1009,17 +1174,25 @@ public:
                 if (verbose)
                     std::cout << "Player " << current_player_idx << " chose Mayor:" << std::endl;
 
+                std::fill(colonists_for_player, colonists_for_player + 5, 0);
+                colonists_for_player[current_player_idx] += colonist_supply > 0; // TODO: Mayor bonus could be refused, but we always accept it for now
+
+                for (int i = 0; i < colonist_ship; i++) {
+                    colonists_for_player[(current_player_idx + i) % player_count] += 1;
+                }
+
                 if (colonist_supply > 0) {
                     if (verbose)
                         std::cout << "Player " << current_player_idx << " took 1 extra Colonist from the supply" << std::endl;
-                    colonist_supply--;
+                    
                     took_from_supply++;
                 }
             }
 
-            int took_from_ship = colonists_for_player[player.player_idx] - took_from_supply;
+            int took_from_ship = colonists_for_player[player.idx] - took_from_supply;
             colonist_ship -= took_from_ship;
-            colonists_for_player[player.player_idx] = 0;
+            colonist_supply -= took_from_supply;
+            colonists_for_player[player.idx] = 0;
 
             auto dist_plant = action.mayor_allocation.distribution;
             auto dist_build = action.mayor_allocation.distribution;
@@ -1110,7 +1283,8 @@ public:
                     int pidx = (current_player_idx + i) % player_count;
                     std::cout << "Player " << pidx << " has: ";
                     for (int g = 0; g < 5; g++) {
-                        std::cout << player_state[pidx].goods[g] << " " << GoodNames[g] << ", ";
+                        if (player_state[pidx].goods[g] > 0)
+                            std::cout << player_state[pidx].goods[g] << " " << GoodNames[g] << ", ";
                     }
                     std::cout << std::endl;
                 }
@@ -1122,24 +1296,32 @@ public:
                 std::cout << std::endl;
             }
 
-            if (action.ship_capacity > 0) {
+            if (action.good != Good::NONE) {
                 auto& ship = *std::find_if(ships.begin(), ships.end(), [&action](const Ship& ship) {
                     return ship.capacity == action.ship_capacity; // TODO: check ownership of ship for Wharf
                 });
-                // TODO: implement Wharf
+                
                 ship.good = action.good;
                 int gidx = static_cast<int>(action.good);
                 int good_count = std::min(ship.capacity - ship.good_count, player.goods[gidx]);
                 
                 if (good_count == 0)
                     throw std::runtime_error("No goods to load onto ship");
+
+                bool has_harbor = false;
+                for (const auto& building : player.buildings) {
+                    if (building.colonists == 0)
+                        continue;
+
+                    if (building.building.type == BuildingType::HARBOR)
+                        has_harbor = true;
+                }
                 
                 ship.good_count += good_count;
                 player.goods[gidx] -= good_count;
-                player.victory_points += good_count + action.sell_price; // 1 VP per good + 1 VP for Captain bonus
-                victory_points_supply -= good_count + action.sell_price;
-
-                // TODO: implement Harbor bonus
+                int vps = good_count + action.sell_price + has_harbor; // 1 VP per good + 1 VP for Captain bonus + 1 VP for Harbor bonus
+                player.victory_points += vps; 
+                victory_points_supply -= vps;
 
                 if (victory_points_supply <= 0)
                     trigger_game_end("Not enough Victory Points available");
@@ -1147,6 +1329,8 @@ public:
                 if (verbose) {
                     std::cout << "Player " << current_player_idx << " loaded " << good_count << " " 
                         << GoodNames[static_cast<int>(action.good)] << " onto Ship of size " << ship.capacity << std::endl;
+
+                    std::cout << "Player " << current_player_idx << " got " << vps << " Victory Points" << std::endl;
 
                     std::cout << "Ships now contain: ";
                     for (const auto& ship : ships) {
@@ -1157,8 +1341,18 @@ public:
 
                 cant_ship_counter = 0;
             } else {
+                // Can't ship anything else, time to store Goods in Warehouses
+
                 if (verbose)
                     std::cout << "Player " << current_player_idx << " can't ship any more goods" << std::endl;
+
+                auto& kept_goods = action.mayor_allocation.distribution;
+                for (int i = 0; i < 5; i++) {
+                    if (verbose && kept_goods.w[i] != player.goods[i])
+                        std::cout << "Player " << current_player_idx << " threw away " << player.goods[i] - kept_goods.w[i] << " " << GoodNames[i] << std::endl;
+
+                    player.goods[i] = kept_goods.w[i];
+                }
 
                 cant_ship_counter++;
             }
@@ -1175,6 +1369,9 @@ public:
         current_round_player_idx = governor_idx;
         current_player_idx = governor_idx;
         round++;
+
+        if (verbose && !game_ending)
+            std::cout << "Player " << governor_idx << " is now the Governor" << std::endl;
 
         // reset role state
         for (auto& role : role_state) {
@@ -1219,23 +1416,21 @@ public:
         else if (current_role == PlayerRole::MAYOR) {
             // refill colonist ship
 
-            if (colonist_supply > 0) {
-                int empty_building_slots = 0;
+            int empty_building_slots = 0;
 
-                for (const auto& player : player_state) {
-                    empty_building_slots += player.get_free_town_space();
-                }
-
-                int next_colonist_ship = std::max(empty_building_slots, player_count);
-                if (next_colonist_ship > colonist_supply)
-                    trigger_game_end("Not enough Colonists available to fill the Colonist Ship");
-                
-                colonist_ship = std::min(next_colonist_ship, colonist_supply);
-                colonist_supply -= colonist_ship;
-
-                if (verbose)
-                    std::cout << "Colonist Ship refilled with " << colonist_ship << " colonists. Remaining colonist supply: " << colonist_supply << std::endl;
+            for (const auto& player : player_state) {
+                empty_building_slots += player.get_free_town_space();
             }
+
+            int next_colonist_ship = std::max(empty_building_slots, player_count);
+            if (next_colonist_ship > colonist_supply)
+                trigger_game_end("Not enough Colonists available to fill the Colonist Ship");
+            
+            colonist_ship = std::min(next_colonist_ship, colonist_supply);
+            colonist_supply -= colonist_ship;
+
+            if (verbose)
+                std::cout << "Colonist Ship refilled with " << colonist_ship << " colonists. Remaining colonist supply: " << colonist_supply << std::endl;
         }
         else if (current_role == PlayerRole::TRADER) {
             // clear trading house
@@ -1255,7 +1450,7 @@ public:
 
             cant_ship_counter = 0;
             for (auto& ship : ships) {
-                if (ship.good_count == ship.capacity) {
+                if (ship.good_count == ship.capacity || (ship.is_wharf() && ship.good_count > 0)) { // always clear Wharf
                     int gidx = static_cast<int>(ship.good);
                     good_supply[gidx].count += ship.good_count;
                     ship.good_count = 0;
@@ -1301,15 +1496,26 @@ public:
         winner = 0;
         int max_points = -1, max_tie = -1;
 
+        std::vector<std::pair<std::pair<int, int>, int>> player_scores;
+
         for (int i = 0; i < player_count; i++) {
             int points = player_state[i].get_total_victory_points();
             int tie = player_state[i].get_total_goods() + player_state[i].doubloons;
-            if (points > max_points || (points == max_points && tie > max_tie)) {
-                max_points = points;
-                max_tie = tie;
-                winner = i;
-            }
+            player_scores.push_back({{points, tie}, i});
         }
+
+        std::sort(player_scores.begin(), player_scores.end(), std::greater<std::pair<std::pair<int, int>, int>>());
+
+        // determine player placements
+
+        player_placements.clear();
+        player_placements.resize(player_count);
+
+        for (int i = 0; i < player_count; i++) {
+            player_placements[player_scores[i].second] = i;
+        }
+
+        winner = player_scores[0].second;
 
         return winner;
     }
@@ -1327,6 +1533,22 @@ public:
     void print_all() {
         std::cout << std::endl << "_____GAME STATE_____" << std::endl;
 
+        std::cout << "Colonist supply: " << colonist_supply << std::endl;
+        std::cout << "Colonist ship: " << colonist_ship << std::endl;
+        std::cout << "Victory Point supply: " << victory_points_supply << std::endl;
+        
+        std::cout << "Goods supply: ";	
+        for (int i = 0; i < 5; i++) {
+            std::cout << good_supply[i].count << " " << GoodNames[i] << ", ";
+        }
+        std::cout << std::endl;
+        
+        std::cout << "Plantation offer: ";
+        for (const auto& plantation : plantation_offer) {
+            std::cout << PlantationNames[static_cast<int>(plantation)] << ", ";
+        }
+        std::cout << std::endl;
+
         std::cout << "Ship states: ";
 
         for (const auto& ship : ships) {
@@ -1335,7 +1557,7 @@ public:
         std::cout << std::endl;
 
         for (const auto& player : player_state) {
-            std::cout << "_____PLAYER " << player.player_idx << "_____" << std::endl;
+            std::cout << "_____PLAYER " << player.idx << "_____" << std::endl;
             std::cout << "Doubloons: " << player.doubloons << std::endl;
             std::cout << "VP Chips: " << player.victory_points << std::endl;
             std::cout << "Buildings: ";
@@ -1352,7 +1574,8 @@ public:
 
             std::cout << "Goods: ";
             for (int i = 0; i < 5; i++) {
-                std::cout << player.goods[i] << " " << GoodNames[i] << ", ";
+                if (player.goods[i] > 0)
+                    std::cout << player.goods[i] << " " << GoodNames[i] << ", ";
             }
             std::cout << std::endl;
 
