@@ -5,15 +5,15 @@
 #include "random_strategy.h"
 
 int main() {
-    srand(time(NULL));
+    auto seed = time(0);
+    std::cout << "Seed: " << seed << std::endl;
+    srand(seed);
     
     // Temporary test cases:
     //srand(3); // 31 21 34 33 currently, tests Factory
     //srand(6); // 20 21 24 21 currently, tests University
     //srand(0); // 25 12 32 26 currently, tests Hacienda
-    //srand(1); // 25 12 32 26 currently, tests Hospice
-
-    std::cout << "Hello, World!" << std::endl;
+    //srand(1); // 17 11 20 19 currently, tests Hospice
 
     int player_count = 4;
 
