@@ -35,6 +35,33 @@ The project is currently easy to build by just executing something like:
 
 This will change as soon as more .cpp files or dependencies are added. I'll make a CMake file when it becomes needed.
 
+## Running the project
+
+> main.exe
+
+Running the executable will produce output that looks like this:
+
+```
+Seed: 1726086293
+Player 0 chose Prospector and got 1 doubloon
+Player 1 chose Builder:
+Player 1 built a Construction Hut for 1 doubloons
+Player 2 built a Small Market for 1 doubloons
+Player 3 built a Small Indigo Plant for 1 doubloons
+Player 0 built a Small Market for 1 doubloons
+Player 2 chose Mayor:
+Player 2 took 1 extra Colonist from the supply
+...
+Total Round count: 14
+Player 0 score: 17
+Player 1 score: 11
+Player 2 score: 20
+Player 3 score: 19
+Player 2 is the winner!
+```
+
+It's the full history of an entire game played by computer players.
+
 ## Contributing
 
 Feel free to take a look around and contribute. I'm especially interested in any bugs or edge cases in the game simulation engine. This will also become easier to test as soon as I implement playing versus the bots from the console window. (Human vs. Computer support)
