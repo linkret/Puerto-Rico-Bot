@@ -1,10 +1,12 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include <iostream>
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
 #include <random>
+#include <set>
 
 enum class Good {
     CORN = 0,
@@ -15,7 +17,7 @@ enum class Good {
     NONE
 };
 
-const std::string GoodNames[] = {
+inline const std::string GoodNames[] = {
     "Corn",
     "Indigo",
     "Sugar",
@@ -23,6 +25,8 @@ const std::string GoodNames[] = {
     "Coffee",
     "None"
 };
+
+inline std::string good_name(Good good) { return GoodNames[static_cast<int>(good)]; }
 
 enum class Plantation {
     CORN = 0,
@@ -34,7 +38,7 @@ enum class Plantation {
     NONE
 };
 
-const std::string PlantationNames[] = {
+inline const std::string PlantationNames[] = {
     "Corn",
     "Indigo",
     "Sugar",
@@ -48,6 +52,9 @@ struct PlantationState {
     Plantation plantation;
     int colonists;
 };
+
+inline std::string plantation_name(Plantation plantation) { return PlantationNames[static_cast<int>(plantation)]; }
+inline std::string plantation_name(PlantationState ps) { return plantation_name(ps.plantation); }
 
 enum class BuildingType {
     SMALL_INDIGO_PLANT,
@@ -80,7 +87,7 @@ enum class BuildingType {
     NONE
 };
 
-std::string BuildingNames[] = {
+inline const std::string BuildingNames[] = {
     "Small Indigo Plant",
     "Small Sugar Mill",
     "Small Market",
@@ -124,6 +131,10 @@ struct BuildingState {
     Building building;
     int colonists;
 };
+
+inline std::string building_name(BuildingType building) { return BuildingNames[static_cast<int>(building)]; }
+inline std::string building_name(Building building) { return building_name(building.type); }
+// TODO: consider adding to_string() methods, or overloading << operator 
 
 struct BuildingSupply {
     Building building;
@@ -230,7 +241,7 @@ struct PlayerState {
                 continue;
 
             if (building.building.type == BuildingType::RESIDENCE) {
-                int filled_plantations = std::max(9u, plantations.size());
+                int filled_plantations = std::max(9, static_cast<int>(plantations.size()));
                 total_points += filled_plantations - 5; // 4/5/6/7 points for filled 9 or lower/10/11/12 plantation spaces
             }
             else if (building.building.type == BuildingType::CUSTOMS_HOUSE) {
@@ -357,6 +368,7 @@ struct Action {
 class GameState {
     // Puerto Rico board state for 3-5 players
     
+protected:
     const RuleSet rule_set = RuleSet::CLASSIC;
     const bool verbose = false;
     bool game_ending = false;
@@ -636,12 +648,15 @@ public:
                 has_hacienda = true;
         }
 
+        if (plantation_supply.empty())
+            has_hacienda = false; // can't use Hacienda if there are no plantations left
+
         int pcnt = player.plantations.size();
 
         if (has_hacienda && !hacienda_just_used && pcnt < 12) {
             actions.emplace_back(Plantation::NONE, true); // use Hacienda
             if (pcnt < 11)
-                return actions; // always uses Hacienda if there's at least 2 free spaces left
+                return actions; // always uses Hacienda first, if there's at least 2 free spaces left
         }
 
         if (can_choose_quarry && quarry_supply > 0 && pcnt < 12)
@@ -816,7 +831,7 @@ public:
             // shouldn't happen, recovery method: //distributions.push_back({0, 0, 0, 0, 0, 0});
         }
 
-        int max_allocs_per_dist = std::min(20u, 2 * DISTRIBUTION_LIMIT / distributions.size()); // arbitrary limit
+        int max_allocs_per_dist = std::min(20, 2 * DISTRIBUTION_LIMIT / static_cast<int>(distributions.size())); // arbitrary limit
 
         for (const auto& dist : distributions) {
             int total_plantation = dist.corn() + 2 * dist.indigo() + 2 * dist.sugar() + 2 * dist.tobacco() + 2 * dist.coffee() + dist.querry();
@@ -825,7 +840,7 @@ public:
 
             for (int i = 0; i < max_allocs_per_dist; i++) {
                 auto buildings_copy = nonprod_buildings;
-                std::random_shuffle(buildings_copy.begin(), buildings_copy.end()); // randomly choose remaining buildings
+                std::shuffle(buildings_copy.begin(), buildings_copy.end(), std::mt19937(std::random_device()())); // randomly choose remaining buildings
                 if (buildings_copy.size() > total_building)
                     buildings_copy.resize(total_building);
                 actions.emplace_back(MayorAllocation(dist, buildings_copy, total_extra));
@@ -986,7 +1001,7 @@ public:
                     int production_count = std::min(produces.count, good_supply[gidx].count);
 
                     if (verbose)
-                        std::cout << production_count << " " << GoodNames[gidx] << ", ";
+                        std::cout << production_count << " " << good_name(produces.good) << ", ";
                     
                     player.goods[gidx] += production_count;
                     good_supply[gidx].count -= production_count;
@@ -1010,7 +1025,7 @@ public:
                 good_supply[gidx].count -= bonus_production_count;
 
                 if (verbose && bonus_production_count > 0)
-                    std::cout << "Player " << current_player_idx << " got a bonus 1 " << GoodNames[gidx] << std::endl;
+                    std::cout << "Player " << current_player_idx << " got a bonus 1 " << good_name(action.good) << std::endl;
             }
 
             if (verbose)
@@ -1068,7 +1083,7 @@ public:
                     ships.push_back({Ship::WHARF_CAPACITY, Good::NONE, 0, player.idx}); // new private ship with effectively infinite capacity
 
                 if (verbose)
-                    std::cout << "Player " << current_player_idx << " built a " << BuildingNames[static_cast<int>(action.building.type)]
+                    std::cout << "Player " << current_player_idx << " built a " << building_name(action.building)
                         << " for " << action.building_cost << " doubloons" << std::endl;
 
                 if (player.free_town_space == 0)
@@ -1088,7 +1103,7 @@ public:
                 plantation_supply.pop_back();
 
                 if (verbose)
-                    std::cout << "Player " << player.idx << " randomly settled a " << PlantationNames[static_cast<int>(random_plantation)] << " tile from Hacienda" << std::endl;
+                    std::cout << "Player " << player.idx << " randomly settled a " << plantation_name(random_plantation) << " tile from Hacienda" << std::endl;
 
                 hacienda_just_used = true;
                 return; // purpesfully don't call next_player() - Hacienda allows for a second (normal) plantation choice
@@ -1137,7 +1152,7 @@ public:
                 }
 
                 if (verbose)
-                    std::cout << "Player " << player.idx << " settled a new " << PlantationNames[static_cast<int>(action.plantation)] << " tile " << std::endl;
+                    std::cout << "Player " << player.idx << " settled a new " << plantation_name(action.plantation) << " tile " << std::endl;
             }
 
             next_player();
@@ -1156,11 +1171,11 @@ public:
                 trading_house.push_back(action.good);
 
                 if (verbose) {
-                    std::cout << "Player " << current_player_idx << " sold 1 " << GoodNames[gidx] << " for " << sale_price << " doubloons" << std::endl;
+                    std::cout << "Player " << current_player_idx << " sold 1 " << good_name(action.good) << " for " << sale_price << " doubloons" << std::endl;
 
                     std::cout << "Trading House now contains: ";
                     for (const auto& good : trading_house) {
-                        std::cout << GoodNames[static_cast<int>(good)] << ", ";
+                        std::cout << good_name(good) << ", ";
                     }
                     std::cout << std::endl;
                 }
@@ -1259,13 +1274,13 @@ public:
 
                 std::cout << "Buildings: ";
                 for (const auto& building : player.buildings) {
-                    std::cout << BuildingNames[static_cast<int>(building.building.type)] << " " << building.colonists << "/" << building.building.capacity << ", ";
+                    std::cout << building_name(building.building) << " " << building.colonists << "/" << building.building.capacity << ", ";
                 }
                 std::cout << std::endl;
 
                 std::cout << "Plantations: ";
                 for (const auto& plantation : player.plantations) {
-                    std::cout << PlantationNames[static_cast<int>(plantation.plantation)] << " " << plantation.colonists << "/1, ";
+                    std::cout << plantation_name(plantation) << " " << plantation.colonists << "/1, ";
                 }
                 std::cout << std::endl;
 
@@ -1291,7 +1306,7 @@ public:
 
                 std::cout << "Ships contain: ";
                 for (const auto& ship : ships) {
-                    std::cout << ship.good_count << "/" << ship.capacity << " " << GoodNames[static_cast<int>(ship.good)] << ", ";
+                    std::cout << ship.good_count << "/" << ship.capacity << " " << good_name(ship.good) << ", ";
                 }
                 std::cout << std::endl;
             }
@@ -1328,13 +1343,13 @@ public:
 
                 if (verbose) {
                     std::cout << "Player " << current_player_idx << " loaded " << good_count << " " 
-                        << GoodNames[static_cast<int>(action.good)] << " onto Ship of size " << ship.capacity << std::endl;
+                        << good_name(action.good) << " onto Ship of size " << ship.capacity << std::endl;
 
                     std::cout << "Player " << current_player_idx << " got " << vps << " Victory Points" << std::endl;
 
                     std::cout << "Ships now contain: ";
                     for (const auto& ship : ships) {
-                        std::cout << ship.good_count << "/" << ship.capacity << " " << GoodNames[static_cast<int>(ship.good)] << ", ";
+                        std::cout << ship.good_count << "/" << ship.capacity << " " << good_name(ship.good) << ", ";
                     }
                     std::cout << std::endl;
                 }
@@ -1351,6 +1366,7 @@ public:
                     if (verbose && kept_goods.w[i] != player.goods[i])
                         std::cout << "Player " << current_player_idx << " threw away " << player.goods[i] - kept_goods.w[i] << " " << GoodNames[i] << std::endl;
 
+                    good_supply[i].count += player.goods[i] - kept_goods.w[i];
                     player.goods[i] = kept_goods.w[i];
                 }
 
@@ -1390,6 +1406,9 @@ public:
 
     void next_round() {
         // next player has to choose a role
+
+        if (verbose)
+            std::cout << std::endl;
 
         if (current_role == PlayerRole::SETTLER) {
             // refill plantation offer
@@ -1531,7 +1550,7 @@ public:
     }
 
     void print_all() {
-        std::cout << std::endl << "_____GAME STATE_____" << std::endl;
+        std::cout << "_____GAME STATE_____" << std::endl;
 
         std::cout << "Colonist supply: " << colonist_supply << std::endl;
         std::cout << "Colonist ship: " << colonist_ship << std::endl;
@@ -1545,30 +1564,37 @@ public:
         
         std::cout << "Plantation offer: ";
         for (const auto& plantation : plantation_offer) {
-            std::cout << PlantationNames[static_cast<int>(plantation)] << ", ";
+            std::cout << plantation_name(plantation) << ", ";
         }
         std::cout << std::endl;
 
         std::cout << "Ship states: ";
 
         for (const auto& ship : ships) {
-            std::cout << ship.good_count << "/" << ship.capacity << " " << GoodNames[static_cast<int>(ship.good)] << ", ";
+            std::cout << ship.good_count << "/" << ship.capacity << " " << good_name(ship.good) << ", ";
         }
         std::cout << std::endl;
 
+        std::cout << "Trading house: ";
+        for (const auto& good : trading_house) {
+            std::cout << good_name(good) << ", ";
+        }
+        std::cout << std::endl;
+
+        std::cout << std::endl;
         for (const auto& player : player_state) {
             std::cout << "_____PLAYER " << player.idx << "_____" << std::endl;
             std::cout << "Doubloons: " << player.doubloons << std::endl;
             std::cout << "VP Chips: " << player.victory_points << std::endl;
             std::cout << "Buildings: ";
             for (const auto& building : player.buildings) {
-                std::cout << BuildingNames[static_cast<int>(building.building.type)] << " " << building.colonists << "/" << building.building.capacity << ", ";
+                std::cout << building_name(building.building) << " " << building.colonists << "/" << building.building.capacity << ", ";
             }
             std::cout << std::endl;
 
             std::cout << "Plantations: ";
             for (const auto& plantation : player.plantations) {
-                std::cout << PlantationNames[static_cast<int>(plantation.plantation)] << " " << plantation.colonists << "/1, ";
+                std::cout << plantation_name(plantation.plantation) << " " << plantation.colonists << "/1, ";
             }
             std::cout << std::endl;
 
@@ -1583,7 +1609,7 @@ public:
                 std::cout << "Extra Colonists: " << player.extra_colonists << std::endl;
 
             std::cout << "Total Victory Points: " << player.get_total_victory_points() << std::endl;
-            std::cout << std::endl << std::endl;
+            std::cout << std::endl;
         }
 
         std::cout << "Round count: " << round << std::endl;
