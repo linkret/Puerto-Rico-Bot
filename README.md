@@ -10,10 +10,10 @@ The rulebook can be found here: https://www.riograndegames.com/wp-content/upload
 
 ## Strategies / Algorithms used
 
-The first, weaker bot Strategies use a classic minmax algorithm for exploring the game tree in combination with a human-made heuristic for evaluating the fitness of gamestates. (Not yet implemented.)
+The first, weaker bot Strategies use a classic minmax algorithm (for more than 2 players, it's called the maxN algorithm) for exploring the game tree in combination with a human-made heuristic for evaluating the fitness of gamestates. (Not yet implemented.)
 
 This heuristic function can then potentially be modified with reinfocement learing or a genetic algorithm. The bots simulate a large number of games among each other, and evolve their heuristic function to increase their winrate.
-A neural network could also be trained, if required. The minmax algorithm can then be sped up using alpha-beta-pruning. This would be easier if Puerto Rico was a game with only 2 players. (Not yet implemented.)
+A neural network could also be trained, if required. The minmax algorithm can then be sped up using shallow pruning. (Alpha-beta-pruning does not generalize to games with more than 2 players.) (Not yet implemented.)
 
 Studying which buildings and moves have high "rewards" in the heuristic function could even help to teach humans how to player better (as long as the heuristic is reversible and not overly complex).
 
