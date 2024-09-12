@@ -120,13 +120,15 @@ inline const std::string BuildingNames[] = {
     "None"
 };
 
-struct Building {
+struct Building { // TODO: all of these members can be statically determined from BuildingType
     BuildingType type;
     int cost;
     int max_discount;
     int victory_points;
     int capacity = 1;
     Good good_produced = Good::NONE;
+
+    bool operator<(const Building& other) const { return type < other.type; } // for std::set
 };
 
 struct BuildingState {
@@ -487,8 +489,11 @@ public:
         std::shuffle(plantation_supply.begin(), plantation_supply.end(), rng);
 
         // move last 4/5/6 plantations from supply to plantation_offer
-        plantation_offer.insert(plantation_offer.end(), std::make_move_iterator(plantation_supply.end() - player_count - 1), std::make_move_iterator(plantation_supply.end()));
-
+        for (int i = 0; i < player_count + 1; i++) {
+            plantation_offer.push_back(plantation_supply.back());
+            plantation_supply.pop_back();
+        }
+        
         // Building Format: {{cost (1-10), max_discount (1-4), victory_points (1-4), worker capacity (1-3), good produced}, supply_count (1-4)}
         building_supply = {
             {{BuildingType::SMALL_INDIGO_PLANT, 1, 1, 1, 1, Good::INDIGO}, 4},

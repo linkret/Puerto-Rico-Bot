@@ -17,7 +17,7 @@ void run_random_game(int player_count, bool verbose, int seed = std::random_devi
         try {
             int player_idx = game.get_current_player_idx();
             players[player_idx].make_move();
-            game.check_integrity(); // TODO: disable when not debugging
+            game.check_integrity(); // TODO: seperate config parameter for integrity checks
         } catch (const std::runtime_error& e) {
             game.print_all();
             std::cout << e.what() << std::endl;
@@ -44,14 +44,14 @@ void stress_test_integrity() {
 
 int main() {
     auto seed = time(0);
-    //seed = 0; // Player scores should equal [32, 36, 27, 39]
+    //seed = 0; // Player scores should equal [20, 11, 16, 23]
     srand(seed);
     std::cout << "Seed: " << seed << std::endl;
 
     run_random_game(4, true, seed);
 
     // TODO: Make legit Tests
-    // stress_test_integrity(); // Passing
+    //stress_test_integrity(); // Passing
 
     return 0;
 }
