@@ -31,9 +31,9 @@ The end goal is to make the bots unbeatable by normal humans!
 
 The project is currently easy to build by just executing something like:
 
-> g++ main.cpp -o main.exe
+> g++ *.cpp -o main.exe
 
-This will change as soon as more .cpp files or dependencies are added. I'll make a CMake file when it becomes needed.
+This will change as soon as more .cpp files or dependencies are added. I'll make a CMake file when it becomes needed. My g++ build command is also included in `.vscode/tasks.json`.
 
 ## Running the project
 
@@ -59,8 +59,6 @@ Player 2 score: 20
 Player 3 score: 19
 Player 2 is the winner!
 ```
-
-It's the full history of an entire game played by computer players.
 
 ## Contributing
 
