@@ -1,6 +1,5 @@
 !/.vscode/launch.json
 !/.vscode/tasks.json
 !/.vscode/settings.json
-/.vscode
 *.exe
 main.exe

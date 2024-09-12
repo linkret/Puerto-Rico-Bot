@@ -20,6 +20,18 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "Run without debugging",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "preLaunchTask": "build",
+            "console": "integratedTerminal"
         }
     ]
 }

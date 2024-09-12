@@ -10,6 +10,9 @@ class Player {
 
 public:
     Player(GameState& game, Strategy* strategy) : game(game), strategy(strategy) {}
+    ~Player() {
+        delete strategy;
+    }
 
     void make_move() {
         strategy->make_move(game);

@@ -8,6 +8,8 @@
 #include <random>
 #include <set>
 
+class GameStateIntegrityChecker; // forward declaration
+
 enum class Good {
     CORN = 0,
     INDIGO = 1,
@@ -343,7 +345,7 @@ enum RuleSet {
 };
 
 struct Action {
-    // TODO: implement all kinds of actions
+    // TODO: it would be good if this class were smaller memory-wise - std::variant and switch case, std::get_if<BuilderAction>, etc.
     PlayerRole type;
 
     Building building;
@@ -367,8 +369,10 @@ struct Action {
 
 class GameState {
     // Puerto Rico board state for 3-5 players
-    
-protected:
+
+    int seed;
+    std::mt19937 rng;
+
     const RuleSet rule_set = RuleSet::CLASSIC;
     const bool verbose = false;
     bool game_ending = false;
@@ -388,7 +392,7 @@ protected:
     int colonists_for_player[5] = {0, 0, 0, 0, 0}; // how many each player will take durring the Mayor phase
     int victory_points_supply;
 
-    std::vector<GoodSupply> good_supply;
+    int good_supply[5] = {0, 0, 0, 0, 0};
 
     int quarry_supply = 8;
     std::vector<Plantation> plantation_supply;
@@ -404,11 +408,15 @@ protected:
 
     std::vector<PlayerState> player_state;
 
+    friend class GameStateIntegrityChecker;
+
 public:
     // TODO: make Config struct with all parameters (there will be more of them in the future)
-    GameState(int player_count, bool verbose = false) 
+    GameState(int player_count, bool verbose = false, int seed = std::random_device()()) 
         : player_count(player_count), verbose(verbose)
     {
+        rng = std::mt19937(seed);
+
         if (player_count < 3 || player_count > 5) {
             throw std::invalid_argument("Invalid player count");
         }
@@ -447,13 +455,11 @@ public:
         colonist_ship = player_count;
         colonist_supply -= colonist_ship;
 
-        good_supply = {
-            {Good::CORN, 10},
-            {Good::INDIGO, 11},
-            {Good::SUGAR, 11},
-            {Good::TOBACCO, 9},
-            {Good::COFFEE, 9}
-        };
+        good_supply[0] = 10;
+        good_supply[1] = 11;
+        good_supply[2] = 11;
+        good_supply[3] = 9;
+        good_supply[4] = 9;
 
         int corn_count = 10, indigo_count = 12;
 
@@ -478,7 +484,7 @@ public:
         plantation_supply.insert(plantation_supply.end(), 9, Plantation::TOBACCO);
         plantation_supply.insert(plantation_supply.end(), 8, Plantation::COFFEE);
 
-        std::shuffle(plantation_supply.begin(), plantation_supply.end(), std::mt19937(std::random_device()()));
+        std::shuffle(plantation_supply.begin(), plantation_supply.end(), rng);
 
         // move last 4/5/6 plantations from supply to plantation_offer
         plantation_offer.insert(plantation_offer.end(), std::make_move_iterator(plantation_supply.end() - player_count - 1), std::make_move_iterator(plantation_supply.end()));
@@ -840,7 +846,7 @@ public:
 
             for (int i = 0; i < max_allocs_per_dist; i++) {
                 auto buildings_copy = nonprod_buildings;
-                std::shuffle(buildings_copy.begin(), buildings_copy.end(), std::mt19937(std::random_device()())); // randomly choose remaining buildings
+                std::shuffle(buildings_copy.begin(), buildings_copy.end(), rng); // randomly choose remaining buildings
                 if (buildings_copy.size() > total_building)
                     buildings_copy.resize(total_building);
                 actions.emplace_back(MayorAllocation(dist, buildings_copy, total_extra));
@@ -998,13 +1004,13 @@ public:
 
                 for (const auto& produces : producing) {
                     int gidx = static_cast<int>(produces.good);
-                    int production_count = std::min(produces.count, good_supply[gidx].count);
+                    int production_count = std::min(produces.count, good_supply[gidx]);
 
                     if (verbose)
                         std::cout << production_count << " " << good_name(produces.good) << ", ";
                     
                     player.goods[gidx] += production_count;
-                    good_supply[gidx].count -= production_count;
+                    good_supply[gidx] -= production_count;
                     if (production_count > 0 && has_factory)
                         factory_doubloons += 1;
                 }
@@ -1020,9 +1026,9 @@ public:
 
             if (action.good != Good::NONE) {
                 int gidx = static_cast<int>(action.good);
-                int bonus_production_count = std::min(1, good_supply[gidx].count);
+                int bonus_production_count = std::min(1, good_supply[gidx]);
                 player.goods[gidx] += bonus_production_count;
-                good_supply[gidx].count -= bonus_production_count;
+                good_supply[gidx] -= bonus_production_count;
 
                 if (verbose && bonus_production_count > 0)
                     std::cout << "Player " << current_player_idx << " got a bonus 1 " << good_name(action.good) << std::endl;
@@ -1224,6 +1230,7 @@ public:
                     dist_plant.w[pidx]--;
                 }
                 else if (extras > 0) {
+                    // Note: this can leave an empty Quarry even when there's extra colonists if the MayorAction was not optimally chosen. We could sort plantations.
                     plantation.colonists = 1; // TODO: always places extras on plantations, even if sometimes (slightly) not optimal
                     extras--;
                 } 
@@ -1312,8 +1319,10 @@ public:
             }
 
             if (action.good != Good::NONE) {
-                auto& ship = *std::find_if(ships.begin(), ships.end(), [&action](const Ship& ship) {
-                    return ship.capacity == action.ship_capacity; // TODO: check ownership of ship for Wharf
+                auto& ship = *std::find_if(ships.begin(), ships.end(), [&action, this](const Ship& ship) {
+                    if (ship.is_wharf() && ship.owner != current_player_idx)
+                        return false;
+                    return ship.capacity == action.ship_capacity;
                 });
                 
                 ship.good = action.good;
@@ -1366,7 +1375,7 @@ public:
                     if (verbose && kept_goods.w[i] != player.goods[i])
                         std::cout << "Player " << current_player_idx << " threw away " << player.goods[i] - kept_goods.w[i] << " " << GoodNames[i] << std::endl;
 
-                    good_supply[i].count += player.goods[i] - kept_goods.w[i];
+                    good_supply[i] += player.goods[i] - kept_goods.w[i];
                     player.goods[i] = kept_goods.w[i];
                 }
 
@@ -1424,7 +1433,7 @@ public:
             if (plantation_supply.size() == 0) {
                 plantation_supply.insert(plantation_supply.end(), plantation_discard.begin(), plantation_discard.end());
                 plantation_discard.clear();
-                std::shuffle(plantation_supply.begin(), plantation_supply.end(), std::mt19937(std::random_device()()));
+                std::shuffle(plantation_supply.begin(), plantation_supply.end(), rng);
             }
 
             while (plantation_supply.size() > 0 && plantation_offer.size() < player_count + 1) {
@@ -1456,7 +1465,7 @@ public:
 
             if (trading_house.size() == 4) {
                 for (const auto& good : trading_house) {
-                    good_supply[static_cast<int>(good)].count += 1;
+                    good_supply[static_cast<int>(good)] += 1;
                 }
                 trading_house.clear();
 
@@ -1471,7 +1480,7 @@ public:
             for (auto& ship : ships) {
                 if (ship.good_count == ship.capacity || (ship.is_wharf() && ship.good_count > 0)) { // always clear Wharf
                     int gidx = static_cast<int>(ship.good);
-                    good_supply[gidx].count += ship.good_count;
+                    good_supply[gidx] += ship.good_count;
                     ship.good_count = 0;
                     ship.good = Good::NONE;
 
@@ -1558,7 +1567,7 @@ public:
         
         std::cout << "Goods supply: ";	
         for (int i = 0; i < 5; i++) {
-            std::cout << good_supply[i].count << " " << GoodNames[i] << ", ";
+            std::cout << good_supply[i] << " " << GoodNames[i] << ", ";
         }
         std::cout << std::endl;
         
@@ -1619,8 +1628,11 @@ public:
         }
         std::cout << std::endl;
 
-        std::cout << "Player " << determine_winner() << " is the winner!" << std::endl;
+        if (winner != -1)
+            std::cout << "Player " << determine_winner() << " is the winner!" << std::endl;
     }
+
+    bool check_integrity() const;
 };
 
 #endif // GAME_H
