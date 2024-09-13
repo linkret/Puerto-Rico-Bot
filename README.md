@@ -31,9 +31,9 @@ The end goal is to make the bots unbeatable by normal humans!
 
 The project is currently easy to build by just executing something like:
 
-> g++ *.cpp -o main.exe -std=c++17
+> g++ src/* -o main.exe -std=c++17 -I include
 
-This will change as soon as more .cpp files or dependencies are added. I'll make a CMake file when it becomes needed. My g++ build command is also included in `.vscode/tasks.json`.
+I'll make a CMake file when I start needing it. My build command is also included in `.vscode/tasks.json`.
 
 ## Running the project
 
