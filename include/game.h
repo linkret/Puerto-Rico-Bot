@@ -79,9 +79,9 @@ struct ProductionDistribution {
 };
 
 struct MayorAllocation {
-    ProductionDistribution distribution;
+    ProductionDistribution distribution = {0, 0, 0, 0, 0, 0};
     std::vector<BuildingType> buildings;
-    int extra_colonists;
+    int extra_colonists = 0;
 
     MayorAllocation() = default;
     MayorAllocation(ProductionDistribution distribution, std::vector<BuildingType> buildings, int extra_colonists) 
@@ -249,9 +249,9 @@ struct Action {
     PlayerRole type;
 
     Building building;
+    Plantation plantation = Plantation::NONE;
     int building_cost;
-    Plantation plantation;
-    Good good;
+    Good good = Good::NONE;
     int ship_capacity;
     int sell_price;
     MayorAllocation mayor_allocation;
@@ -264,7 +264,7 @@ struct Action {
     Action(MayorAllocation allocation) : type(PlayerRole::MAYOR), mayor_allocation(allocation) {}
     Action(int ship_capacity, Good good, int bonus) : type(PlayerRole::CAPTAIN), good(good), ship_capacity(ship_capacity), sell_price(bonus) {}
     Action(ProductionDistribution dist, int bonus) // for storing Goods after Captain phase
-        : good(Good::NONE), type(PlayerRole::CAPTAIN), sell_price(bonus), mayor_allocation(dist, {}, 0) {}
+        : type(PlayerRole::CAPTAIN), good(Good::NONE), sell_price(bonus), mayor_allocation(dist, {}, 0) {}
 };
 
 class GameState {
@@ -274,9 +274,9 @@ class GameState {
     std::mt19937 rng;
 
     const RuleSet rule_set = RuleSet::CLASSIC;
+    const int player_count;
     const bool verbose = false;
     bool game_ending = false;
-    const int player_count;
 
     // TODO: seperate these members into classes, e.g. PlayerManager, RoleManager, SupplyManager, etc.
 
@@ -411,8 +411,6 @@ public:
     ~GameState() = default;
 
     std::vector<Action> get_legal_actions() {
-        const auto& player = player_state[current_player_idx];
-
         if (current_role == PlayerRole::NONE) {
             std::vector<Action> actions;
 
@@ -564,7 +562,7 @@ public:
             plantation_discard.insert(plantation_discard.end(), plantation_offer.begin(), plantation_offer.end());
             plantation_offer.clear();
 
-            while (plantation_supply.size() > 0 && plantation_offer.size() < player_count + 1) {
+            while (plantation_supply.size() > 0 && plantation_offer.size() < std::size_t(player_count + 1)) {
                 plantation_offer.push_back(plantation_supply.back());
                 plantation_supply.pop_back();
             }
@@ -575,7 +573,7 @@ public:
                 std::shuffle(plantation_supply.begin(), plantation_supply.end(), rng);
             }
 
-            while (plantation_supply.size() > 0 && plantation_offer.size() < player_count + 1) {
+            while (plantation_supply.size() > 0 && plantation_offer.size() < std::size_t(player_count + 1)) {
                 plantation_offer.push_back(plantation_supply.back());
                 plantation_supply.pop_back();
             }
@@ -661,7 +659,6 @@ public:
 
     int determine_winner() {
         winner = 0;
-        int max_points = -1, max_tie = -1;
 
         std::vector<std::pair<std::pair<int, int>, int>> player_scores;
 

@@ -154,7 +154,7 @@ std::vector<Action> MayorAction::get_legal_actions(const GameState& g, bool is_m
     int querries = player.get_querry_count(true);
     int max_employed = max_goods[0].count + 2 * max_goods[1].count + 2 * max_goods[2].count + 2 * max_goods[3].count + 2 * max_goods[4].count + querries;
 
-    int DISTRIBUTION_LIMIT = 100; // arbitrary limit
+    std::size_t DISTRIBUTION_LIMIT = 100; // arbitrary limit
     std::vector<ProductionDistribution> distributions;
 
     // TODO: try to write this in a more readable way
@@ -191,7 +191,7 @@ std::vector<Action> MayorAction::get_legal_actions(const GameState& g, bool is_m
                             int employed = total_colonists - q_col;
 
                             // do not allow under-employment - always dominated by a previous distribution
-                            if (employed < max_employed && q_col > nonprod_buildings.size() + 1)
+                            if (employed < max_employed && std::size_t(q_col) > nonprod_buildings.size() + 1)
                                 continue;
 
                             distributions.push_back({corn, indigo, sugar, tobacco, coffee, querry});
@@ -212,7 +212,7 @@ std::vector<Action> MayorAction::get_legal_actions(const GameState& g, bool is_m
         // shouldn't happen, recovery method: //distributions.push_back({0, 0, 0, 0, 0, 0});
     }
 
-    int max_allocs_per_dist = std::min(20, 2 * DISTRIBUTION_LIMIT / static_cast<int>(distributions.size())); // arbitrary limit
+    int max_allocs_per_dist = std::min(std::size_t(20), 2 * DISTRIBUTION_LIMIT / distributions.size()); // arbitrary limit
 
     auto rng = g.rng; // g.rng is const, therefore unusable for std::shuffle
 
@@ -224,11 +224,11 @@ std::vector<Action> MayorAction::get_legal_actions(const GameState& g, bool is_m
         for (int i = 0; i < max_allocs_per_dist; i++) {
             auto buildings_copy = nonprod_buildings;
             std::shuffle(buildings_copy.begin(), buildings_copy.end(), rng); // randomly choose remaining buildings
-            if (buildings_copy.size() > total_building)
+            if (buildings_copy.size() > std::size_t(total_building))
                 buildings_copy.resize(total_building);
             actions.emplace_back(MayorAllocation(dist, buildings_copy, total_extra));
 
-            if (nonprod_buildings.size() <= total_building || total_building == 0) // result would always be the same, since we have more than enough people
+            if (nonprod_buildings.size() <= std::size_t(total_building) || total_building == 0) // result would always be the same, since we have more than enough people
                 break;
         }
     }

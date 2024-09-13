@@ -95,7 +95,7 @@ std::vector<Action> BuilderAction::get_legal_actions(const GameState& g, bool is
     }
 
     if (actions.empty()) {
-        actions.push_back({{BuildingType::NONE}, 0});
+        actions.emplace_back(Building(BuildingType::NONE), 0);
     }
 
     return actions;

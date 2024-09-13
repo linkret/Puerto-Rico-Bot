@@ -30,7 +30,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],
-            "preLaunchTask": "build",
+            "preLaunchTask": "build optimized",
             "console": "integratedTerminal"
         }
     ]
