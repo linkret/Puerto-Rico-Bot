@@ -4,6 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/include/**",
                 "C:\\MinGW\\include\\c++\\14.2.0\\**",
                 "C:\\MinGW\\lib\\gcc\\x86_64-w64-mingw32\\14.2.0\\include\\**"
             ],
