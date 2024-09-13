@@ -2,6 +2,8 @@
 #define GAME_H
 
 #include "action.h"
+#include "building.h"
+#include "good.h"
 #include "roles.h"
 
 #include <iostream>
@@ -12,26 +14,6 @@
 #include <set>
 
 class GameStateIntegrityChecker; // forward declaration
-
-enum class Good {
-    CORN = 0,
-    INDIGO = 1,
-    SUGAR = 2,
-    TOBACCO = 3,
-    COFFEE = 4,
-    NONE
-};
-
-inline const std::string GoodNames[] = {
-    "Corn",
-    "Indigo",
-    "Sugar",
-    "Tobacco",
-    "Coffee",
-    "None"
-};
-
-inline std::string good_name(Good good) { return GoodNames[static_cast<int>(good)]; }
 
 enum class Plantation {
     CORN = 0,
@@ -61,87 +43,12 @@ struct PlantationState {
 inline std::string plantation_name(Plantation plantation) { return PlantationNames[static_cast<int>(plantation)]; }
 inline std::string plantation_name(PlantationState ps) { return plantation_name(ps.plantation); }
 
-enum class BuildingType {
-    SMALL_INDIGO_PLANT,
-    SMALL_SUGAR_MILL,
-    SMALL_MARKET,
-    HACIENDA,
-    CONSTRUCTION_HUT,
-    SMALL_WAREHOUSE,
-
-    LARGE_INDIGO_PLANT,
-    LARGE_SUGAR_MILL,
-    HOSPICE,
-    OFFICE,
-    LARGE_MARKET,
-    LARGE_WAREHOUSE,
-    
-    TOBACCO_STORAGE,
-    COFFEE_ROASTER,
-    FACTORY,
-    UNIVERSITY,
-    HARBOR,
-    WHARF,
-    
-    GUILD_HALL,
-    CUSTOMS_HOUSE,
-    CITY_HALL,
-    RESIDENCE,
-    FORTRESS,
-
-    NONE
-};
-
-inline const std::string BuildingNames[] = {
-    "Small Indigo Plant",
-    "Small Sugar Mill",
-    "Small Market",
-    "Hacienda",
-    "Construction Hut",
-    "Small Warehouse",
-
-    "Large Indigo Plant",
-    "Large Sugar Mill",
-    "Hospice",
-    "Office",
-    "Large Market",
-    "Large Warehouse",
-
-    "Tobacco Storage",
-    "Coffee Roaster",
-    "Factory",
-    "University",
-    "Harbor",
-    "Wharf",
-
-    "Guild Hall",
-    "Customs House",
-    "City Hall",
-    "Residence",
-    "Fortress",
-
-    "None"
-};
-
-struct Building { // TODO: all of these members can be statically determined from BuildingType
-    BuildingType type;
-    int cost;
-    int max_discount;
-    int victory_points;
-    int capacity = 1;
-    Good good_produced = Good::NONE;
-
-    bool operator<(const Building& other) const { return type < other.type; } // for std::set
-};
-
 struct BuildingState {
     Building building;
     int colonists;
 };
 
-inline std::string building_name(BuildingType building) { return BuildingNames[static_cast<int>(building)]; }
-inline std::string building_name(Building building) { return building_name(building.type); }
-// TODO: consider adding to_string() methods, or overloading << operator 
+// TODO: consider adding to_string() methods, or overloading << operator instead of x_name(x) methods
 
 struct BuildingSupply {
     Building building;
@@ -230,9 +137,9 @@ struct PlayerState {
         int total_points = victory_points;
         
         for (const auto& building : buildings) {
-            total_points += building.building.victory_points;
+            total_points += building.building.victory_points();
 
-            if (building.colonists == 0 || building.building.cost < 10)
+            if (building.colonists == 0 || building.building.cost() < 10)
                 continue;
 
             if (building.building.type == BuildingType::RESIDENCE) {
@@ -245,15 +152,15 @@ struct PlayerState {
             else if (building.building.type == BuildingType::GUILD_HALL) {
                 int guild_points = 0;
                 for (const auto& other_building : buildings) {
-                    if (other_building.building.good_produced != Good::NONE)
-                        guild_points += (other_building.building.capacity == 1) ? 1 : 2; // 1/2 points for small/large good-producing buildings
+                    if (other_building.building.good_produced() != Good::NONE)
+                        guild_points += (other_building.building.capacity() == 1) ? 1 : 2; // 1/2 points for small/large good-producing buildings
                 }
                 total_points += guild_points;
             }
             else if (building.building.type == BuildingType::CITY_HALL) {
                 int city_points = 0;
                 for (const auto& other_building : buildings) {
-                    if (other_building.building.good_produced == Good::NONE)
+                    if (other_building.building.good_produced() == Good::NONE)
                         city_points += 1; // 1 point for each non-good-producing building
                 }
                 total_points += city_points;
@@ -286,7 +193,7 @@ struct PlayerState {
     int get_free_town_space() const {
         int free_slots = 0;
         for (const auto& building : buildings) {
-            free_slots += building.building.capacity - building.colonists;
+            free_slots += building.building.capacity() - building.colonists;
         }
         return free_slots;
     }
@@ -304,9 +211,9 @@ struct PlayerState {
         }
 
         for (const auto& building : buildings) {
-            if (building.building.good_produced != Good::NONE) {
-                int gidx = static_cast<int>(building.building.good_produced);
-                building_production[gidx] += (theoretical_maximum ? building.building.capacity : building.colonists);
+            if (building.building.good_produced() != Good::NONE) {
+                int gidx = static_cast<int>(building.building.good_produced());
+                building_production[gidx] += (theoretical_maximum ? building.building.capacity() : building.colonists);
             }
         }
 
@@ -463,22 +370,8 @@ public:
         good_supply[3] = 9;
         good_supply[4] = 9;
 
-        int corn_count = 10, indigo_count = 12;
-
-        switch (player_count) {
-            case 3:
-                corn_count -= 1;
-                indigo_count -= 2;
-                break;
-            case 4:
-                corn_count -= 2;
-                indigo_count -= 2;
-                break;
-            case 5:
-                corn_count -= 2;
-                indigo_count -= 3;
-                break;
-        }
+        int corn_count = (player_count == 3) ? 9 : 8;
+        int indigo_count = (player_count < 5) ? 10 : 9;
 
         plantation_supply.insert(plantation_supply.end(), corn_count, Plantation::CORN);
         plantation_supply.insert(plantation_supply.end(), indigo_count, Plantation::INDIGO);
@@ -494,35 +387,12 @@ public:
             plantation_supply.pop_back();
         }
 
-        // Building Format: {{cost (1-10), max_discount (1-4), victory_points (1-4), worker capacity (1-3), good produced}, supply_count (1-4)}
-        building_supply = {
-            {{BuildingType::SMALL_INDIGO_PLANT, 1, 1, 1, 1, Good::INDIGO}, 4},
-            {{BuildingType::SMALL_SUGAR_MILL, 2, 1, 1, 1, Good::SUGAR}, 4},
-            {{BuildingType::SMALL_MARKET, 1, 1, 1}, 2},
-            {{BuildingType::HACIENDA, 2, 1, 1}, 2},
-            {{BuildingType::CONSTRUCTION_HUT, 2, 1, 1}, 2},
-            {{BuildingType::SMALL_WAREHOUSE, 3, 1, 1}, 2},
-
-            {{BuildingType::LARGE_INDIGO_PLANT, 3, 2, 2, 3, Good::INDIGO}, 3},
-            {{BuildingType::LARGE_SUGAR_MILL, 4, 2, 2, 3, Good::SUGAR}, 3},
-            {{BuildingType::HOSPICE, 4, 2, 2}, 2},
-            {{BuildingType::OFFICE, 5, 2, 2}, 2},
-            {{BuildingType::LARGE_MARKET, 5, 2, 2}, 2},
-            {{BuildingType::LARGE_WAREHOUSE, 6, 2, 2}, 2},
-
-            {{BuildingType::TOBACCO_STORAGE, 5, 3, 3, 3, Good::TOBACCO}, 3},
-            {{BuildingType::COFFEE_ROASTER, 6, 3, 3, 2, Good::COFFEE}, 3},
-            {{BuildingType::FACTORY, 7, 3, 3}, 2},
-            {{BuildingType::UNIVERSITY, 8, 3, 3}, 2},
-            {{BuildingType::HARBOR, 8, 3, 3}, 2},
-            {{BuildingType::WHARF, 9, 3, 3}, 2},
-
-            {{BuildingType::GUILD_HALL, 10, 4, 4}, 1},
-            {{BuildingType::CUSTOMS_HOUSE, 10, 4, 4}, 1},
-            {{BuildingType::CITY_HALL, 10, 4, 4}, 1},
-            {{BuildingType::RESIDENCE, 10, 4, 4}, 1},
-            {{BuildingType::FORTRESS, 10, 4, 4}, 1}
-        };
+        building_supply.reserve(23);
+        for (int i = 0; i < static_cast<int>(BuildingType::NONE); i++) {
+            auto type = static_cast<BuildingType>(i);
+            auto building = Building(type);
+            building_supply.push_back({building, building.starting_global_supply()});
+        }
 
         ships = {
             {player_count + 1, Good::NONE, 0},
@@ -633,7 +503,7 @@ public:
             ProspectorAction().perform(*this, action);
         }
         else if (action.type == PlayerRole::PROSPECTOR_2) {
-            ProspectorAction().perform(*this, action);
+            Prospector2Action().perform(*this, action);
         }
         else if (action.type == PlayerRole::CRAFTSMAN) {
             CraftsmanAction().perform(*this, action);
@@ -866,7 +736,7 @@ public:
             std::cout << "VP Chips: " << player.victory_points << std::endl;
             std::cout << "Buildings: ";
             for (const auto& building : player.buildings) {
-                std::cout << building_name(building.building) << " " << building.colonists << "/" << building.building.capacity << ", ";
+                std::cout << building.building.name() << " " << building.colonists << "/" << building.building.capacity() << ", ";
             }
             std::cout << std::endl;
 

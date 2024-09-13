@@ -89,10 +89,10 @@ void GameStateIntegrityChecker::check_building_count() const {
         throw std::runtime_error("Global number of unique buildings count is incorrect");
 
     for (const auto& [building, count] : building_count) {
-        if (   (building.cost == 10 && count != 1)
-            || (building.good_produced == Good::NONE && building.cost != 10 && count != 2)
-            || (building.good_produced != Good::NONE && building.capacity == 1 && count != 4)
-            || (building.good_produced != Good::NONE && building.capacity > 1 && count != 3)
+        if (   (building.cost() == 10 && count != 1)
+            || (building.good_produced() == Good::NONE && building.cost() != 10 && count != 2)
+            || (building.good_produced() != Good::NONE && building.capacity() == 1 && count != 4)
+            || (building.good_produced() != Good::NONE && building.capacity() > 1 && count != 3)
         )
             throw std::runtime_error("Invalid global building count");
     }

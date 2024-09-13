@@ -57,11 +57,11 @@ void MayorAction::perform(GameState& g, const Action& action) const {
     const auto& buildings = action.mayor_allocation.buildings;
 
     for (auto building : player.buildings) {
-        if (building.building.good_produced != Good::NONE) {
-            int gidx = static_cast<int>(building.building.good_produced);
+        if (building.building.good_produced() != Good::NONE) {
+            int gidx = static_cast<int>(building.building.good_produced());
 
             if (dist_build.w[gidx] > 0) {
-                int num_cols = std::min(dist_build.w[gidx], building.building.capacity);
+                int num_cols = std::min(dist_build.w[gidx], building.building.capacity());
                 building.colonists = num_cols;
                 dist_build.w[gidx] -= num_cols;
             }
@@ -75,7 +75,7 @@ void MayorAction::perform(GameState& g, const Action& action) const {
         }
 
         if (extras > 0) {
-            int num_cols = std::min(extras, building.building.capacity - building.colonists);
+            int num_cols = std::min(extras, building.building.capacity() - building.colonists);
             building.colonists += num_cols;
             extras -= num_cols;
         }
@@ -94,7 +94,7 @@ void MayorAction::perform(GameState& g, const Action& action) const {
 
         std::cout << "Buildings: ";
         for (const auto& building : player.buildings) {
-            std::cout << building_name(building.building) << " " << building.colonists << "/" << building.building.capacity << ", ";
+            std::cout << building.building.name() << " " << building.colonists << "/" << building.building.capacity() << ", ";
         }
         std::cout << std::endl;
 
@@ -146,7 +146,7 @@ std::vector<Action> MayorAction::get_legal_actions(const GameState& g, bool is_m
     
     std::vector<BuildingType> nonprod_buildings;
     for (const auto& building : player.buildings) {
-        if (building.building.good_produced == Good::NONE)
+        if (building.building.good_produced() == Good::NONE)
             nonprod_buildings.push_back(building.building.type);
     }
 

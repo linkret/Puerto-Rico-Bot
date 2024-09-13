@@ -37,7 +37,7 @@ void BuilderAction::perform(GameState& g, const Action& action) const {
 
         player.buildings.push_back({action.building, has_university}); // only comes with a Colonist from University
         player.doubloons -= action.building_cost;
-        player.free_town_space -= (action.building.cost == 10) ? 2 : 1;
+        player.free_town_space -= (action.building.cost() == 10) ? 2 : 1;
 
         auto bit = std::find_if(g.building_supply.begin(), g.building_supply.end(), [&action](const BuildingSupply& building) {
             return building.building.type == action.building.type;
@@ -52,7 +52,7 @@ void BuilderAction::perform(GameState& g, const Action& action) const {
             g.ships.push_back({Ship::WHARF_CAPACITY, Good::NONE, 0, player.idx}); // new private ship with effectively infinite capacity
 
         if (g.verbose)
-            std::cout << "Player " << player.idx << " built a " << building_name(action.building)
+            std::cout << "Player " << player.idx << " built a " << action.building.name()
                 << " for " << action.building_cost << " doubloons" << std::endl;
 
         if (player.free_town_space == 0)
@@ -83,19 +83,19 @@ std::vector<Action> BuilderAction::get_legal_actions(const GameState& g, bool is
             continue;
 
         // do not allow building if not enough space
-        int building_size = (building.building.cost == 10) ? 2 : 1;
+        int building_size = (building.building.cost() == 10) ? 2 : 1;
         if (building_size > player.free_town_space)
             continue;
 
         // allow building if enough doubloons
-        int building_cost = std::max(0, building.building.cost - std::min(building.building.max_discount, quarries) - is_builder);
+        int building_cost = std::max(0, building.building.cost() - std::min(building.building.max_discount(), quarries) - is_builder);
         if (building_cost <= doubloons) {
             actions.emplace_back(building.building, building_cost);
         }
     }
 
     if (actions.empty()) {
-        actions.push_back({{BuildingType::NONE, 0, 0, 0, 0}, 0});
+        actions.push_back({{BuildingType::NONE}, 0});
     }
 
     return actions;

@@ -44,14 +44,14 @@ void stress_test_integrity() {
 
 int main() {
     auto seed = time(0);
-    //seed = 0; // Player scores should equal [20, 11, 16, 23]
+    seed = 0; // Player scores should equal [20, 11, 16, 23]
     srand(seed);
     std::cout << "Seed: " << seed << std::endl;
 
-    run_random_game(4, true, seed);
+    //run_random_game(4, true, seed);
 
     // TODO: Make legit Tests
-    //stress_test_integrity(); // Passing
+    stress_test_integrity(); // Passing
 
     return 0;
 }
