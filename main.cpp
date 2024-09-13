@@ -21,7 +21,7 @@ void run_random_game(int player_count, bool verbose, int seed = std::random_devi
         } catch (const std::runtime_error& e) {
             game.print_all();
             std::cout << e.what() << std::endl;
-            std::cout << "Seed: " << seed << std::endl;
+            std::cout << "Seed with error: " << seed << std::endl;
             throw e;
             break;
         }

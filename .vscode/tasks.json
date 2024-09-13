@@ -7,6 +7,13 @@
             "command": "C:\\MinGW\\bin\\g++.exe",
             "args": [
                 "${workspaceFolder}/game.cpp",
+                "${workspaceFolder}/mayor.cpp",
+                "${workspaceFolder}/craftsman.cpp",
+                "${workspaceFolder}/settler.cpp",
+                "${workspaceFolder}/builder.cpp",
+                "${workspaceFolder}/captain.cpp",
+                "${workspaceFolder}/trader.cpp",
+                "${workspaceFolder}/prospector.cpp",
                 "${workspaceFolder}/integrity_checker.cpp",
                 "${workspaceFolder}/main.cpp",
                 "-o",
