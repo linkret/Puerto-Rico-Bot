@@ -2,15 +2,20 @@
 
 #include "game.h"
 #include "player.h"
-#include "random_strategy.h"
 
-void run_random_game(int player_count, bool verbose, int seed = std::random_device()()) {
+#include "random_strategy.h"
+#include "simple_heuristic_strategy.h" // TODO: put all strategies in a single file
+#include "maxn_strategy.h"
+#include "basic_heuristic.h"
+
+std::vector<int> run_random_game(std::vector<Strategy*>& strategy, bool verbose, int seed = std::random_device()()) {
+    int player_count = strategy.size();
     GameState game(player_count, verbose, seed);
 
     std::vector<Player> players;
     players.reserve(player_count);
     for (int i = 0; i < player_count; i++)
-        players.emplace_back(game, new RandomStrategy(seed)); // TODO: allow different strategies
+        players.emplace_back(game, strategy[i]);
 
     while(true) {
         try {
@@ -22,35 +27,83 @@ void run_random_game(int player_count, bool verbose, int seed = std::random_devi
             std::cout << e.what() << std::endl;
             std::cout << "Seed with error: " << seed << std::endl;
             throw e;
-            break;
         }
 
         if (game.is_game_over()) {
             if (verbose)
                 game.print_all();
-            break;
+            return game.player_placements;
         }
     }
+}
+
+std::vector<int> run_random_game(int player_count, Strategy* my_strategy, bool verbose, int seed = std::random_device()()) {
+    std::vector<Strategy*> strategies;
+    strategies.reserve(player_count);
+    strategies.push_back(my_strategy);
+    for (int i = 0; i < player_count - 1; i++)
+        strategies.push_back(new RandomStrategy());
+
+    return run_random_game(strategies, verbose, seed);
 }
 
 void stress_test_integrity() {
     for (int i = 0; i < 1000; i++) {
         int player_count = rand() % 3 + 3; // 3, 4, 5
-        run_random_game(player_count, false);
+        run_random_game(player_count, new RandomStrategy, false);
     }
     std::cout << "Integrity stress test passed" << std::endl;
 }
 
+void measure_winrate() {
+    int win_count = 0;
+    int game_count = 500; // would prefer 10000 
+
+    for (int i = 0; i < game_count; i++) {
+        int player_count = rand() % 3 + 3; // 3, 4, 5
+        int my_idx = rand() % player_count;
+        
+        std::vector<Strategy*> strategies;
+        strategies.reserve(player_count);
+        
+        for (int j = 0; j < player_count; j++) {
+            if (j == my_idx)
+                //strategies.push_back(new SimpleHeuristicStrategy(new BasicHeuristic()));
+                strategies.push_back(new MaxnStrategy(3));
+            else
+                //strategies.push_back(new RandomStrategy());
+                strategies.push_back(new SimpleHeuristicStrategy(new BasicHeuristic()));
+        }
+    
+        auto placements = run_random_game(strategies, false);
+
+        if (placements[my_idx] == 0)
+            win_count++;
+    }
+
+    std::cout << "Winrate: " << 100.0 * win_count / game_count << std::endl;
+}
+
 int main() {
     auto seed = time(0);
-    //seed = 0; // Player scores should equal [20, 11, 16, 23]
+    //seed = 0; // Player scores should equal [20, 11, 16, 23] for seed 0 and all RandomStrategies
     srand(seed);
     std::cout << "Seed: " << seed << std::endl;
 
-    run_random_game(5, true, seed);
+    run_random_game(4, new MaxnStrategy(3), true, seed);
 
     // TODO: Make legit Tests
     //stress_test_integrity(); // Passing
+
+    //measure_winrate();
+    // Expected winrate between 3-5 equally skilled players is 26%
+    // 1 SimpleHeuristicStrategy vs. N RandomStrategy: 99.5% winrate
+    // 1 SimpleHeuristicStrategy vs. N SimpleHeuristicStrategy: 27.3% winrate
+    // 1 MaxnStrategy(dep=3) vs. N RandomStrategy: 99.6% winrate
+    // 1 MaxnStrategy(dep=3) vs. N SimpleHeuristicStrategy: 27.6% winrate // This isn't as high as I expected, or wanted
+    // 1 MaxnStrategy(dep=4) vs. N SimpleHeuristicStrategy: 27.8% winrate // This didn't help much
+
+    // For now, it seems MaxnStrategy isn't really better than SimpleHeuristicStrategy - it just wastes more runtime
 
     return 0;
 }

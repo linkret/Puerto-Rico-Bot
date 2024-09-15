@@ -10,6 +10,7 @@ class RandomStrategy : public Strategy {
     std::mt19937 rng;
 public:
     RandomStrategy(int seed = std::random_device()()) : rng(seed) {}
+    ~RandomStrategy() override = default;
 
     void make_move(GameState& game) override {
         std::vector<Action> actions = game.get_legal_actions();

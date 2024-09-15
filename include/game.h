@@ -62,13 +62,13 @@ struct GoodSupply {
 
 struct RoleState {
     PlayerRole role;
-    bool taken;
-    int doubloons;
+    bool taken = false;
+    int doubloons = 0;
 };
 
 // TODO: also use for Craftsman
 struct ProductionDistribution {
-    int w[6]; // corn, indigo, sugar, tobacco, coffee, querry;
+    int w[6] = {0, 0, 0, 0, 0, 0}; // corn, indigo, sugar, tobacco, coffee, querry;
 
     int corn() const { return w[0]; }
     int indigo() const { return w[1]; }
@@ -79,7 +79,7 @@ struct ProductionDistribution {
 };
 
 struct MayorAllocation {
-    ProductionDistribution distribution = {0, 0, 0, 0, 0, 0};
+    ProductionDistribution distribution;
     std::vector<BuildingType> buildings;
     int extra_colonists = 0;
 
@@ -256,6 +256,7 @@ struct Action {
     int sell_price;
     MayorAllocation mayor_allocation;
 
+    Action() : type(PlayerRole::NONE) {}
     Action(PlayerRole type) : type(type) {}
     Action(Building building, int cost) : type(PlayerRole::BUILDER), building(building), building_cost(cost) {}
     Action(Plantation plantation, bool hacienda = false) : type(PlayerRole::SETTLER), plantation(plantation), building_cost(hacienda) {}
@@ -267,16 +268,16 @@ struct Action {
         : type(PlayerRole::CAPTAIN), good(Good::NONE), sell_price(bonus), mayor_allocation(dist, {}, 0) {}
 };
 
-class GameState {
+struct GameState {
     // Puerto Rico board state for 3-5 players
-
-    int seed;
-    std::mt19937 rng;
 
     const RuleSet rule_set = RuleSet::CLASSIC;
     const int player_count;
-    const bool verbose = false;
+    bool verbose = false;
     bool game_ending = false;
+
+    int seed;
+    std::mt19937 rng;
 
     // TODO: seperate these members into classes, e.g. PlayerManager, RoleManager, SupplyManager, etc.
 
@@ -309,26 +310,13 @@ class GameState {
     std::vector<Good> trading_house;
 
     std::vector<PlayerState> player_state;
-
-    friend class GameStateIntegrityChecker;
-    friend class MayorAction;
-    friend class TraderAction;
-    friend class CraftsmanAction;
-    friend class BuilderAction;
-    friend class SettlerAction;
-    friend class CaptainAction;
-    friend class ProspectorAction;
-    friend class Prospector2Action;
 public:
     // TODO: make Config struct with all parameters (there will be even more of them in the future)
     GameState(int player_count, bool verbose = false, int seed = std::random_device()()) 
-        : player_count(player_count), verbose(verbose)
+        : player_count(player_count), verbose(verbose), seed(seed), rng(seed)
     {
-        rng = std::mt19937(seed);
-
-        if (player_count < 3 || player_count > 5) {
+        if (player_count < 3 || player_count > 5)
             throw std::invalid_argument("Invalid player count");
-        }
 
         role_state = {
             {PlayerRole::MAYOR, false, 0},
@@ -339,27 +327,13 @@ public:
             {PlayerRole::CAPTAIN, false, 0}
         };
 
-        if (player_count >= 4) {
+        if (player_count >= 4)
             role_state.push_back({PlayerRole::PROSPECTOR, false, 0});
-        }
-        if (player_count == 5) {
+        if (player_count == 5)
             role_state.push_back({PlayerRole::PROSPECTOR_2, false, 0});
-        }
 
-        switch (player_count) {
-            case 3:
-                colonist_supply = 55;
-                victory_points_supply = 75;
-                break;
-            case 4:
-                colonist_supply = 75;
-                victory_points_supply = 100;
-                break;
-            case 5:
-                colonist_supply = 95;
-                victory_points_supply = 122;
-                break;
-        }
+        colonist_supply = (player_count == 3) ? 55 : (player_count == 4) ? 75 : 95;
+        victory_points_supply = (player_count == 3) ? 75 : (player_count == 4) ? 100 : 122;
 
         colonist_ship = player_count;
         colonist_supply -= colonist_ship;
@@ -410,7 +384,7 @@ public:
 
     ~GameState() = default;
 
-    std::vector<Action> get_legal_actions() {
+    std::vector<Action> get_legal_actions() const {
         if (current_role == PlayerRole::NONE) {
             std::vector<Action> actions;
 
@@ -425,7 +399,7 @@ public:
                     actions.insert(actions.end(), legal_actions.begin(), legal_actions.end());
                 }
                 else if (role.role == PlayerRole::PROSPECTOR_2) {
-                    auto legal_actions = ProspectorAction().get_legal_actions(*this, true);
+                    auto legal_actions = Prospector2Action().get_legal_actions(*this, true);
                     actions.insert(actions.end(), legal_actions.begin(), legal_actions.end());
                 }
                 else if (role.role == PlayerRole::BUILDER) {
@@ -639,9 +613,7 @@ public:
         // everyone performs an Action of the currrent role
         current_player_idx = (current_player_idx + 1) % player_count;
         if (current_role == PlayerRole::CAPTAIN) {
-            if (cant_ship_counter < player_count)
-                return;
-            else
+            if (cant_ship_counter >= player_count)
                 next_round();
         }
         else if (current_player_idx == current_round_player_idx) {
@@ -649,11 +621,11 @@ public:
         }
     }
 
-    int get_current_player_idx() {
+    int get_current_player_idx() const {
         return current_player_idx;
     }
 
-    bool is_game_over() {
+    bool is_game_over() const {
         return (winner != -1);
     }
 
@@ -675,9 +647,8 @@ public:
         player_placements.clear();
         player_placements.resize(player_count);
 
-        for (int i = 0; i < player_count; i++) {
+        for (int i = 0; i < player_count; i++)
             player_placements[player_scores[i].second] = i;
-        }
 
         winner = player_scores[0].second;
 
@@ -694,7 +665,7 @@ public:
         game_ending = true;
     }
 
-    void print_all() {
+    void print_all() const {
         std::cout << "_____GAME STATE_____" << std::endl;
 
         std::cout << "Colonist supply: " << colonist_supply << std::endl;
@@ -765,7 +736,7 @@ public:
         std::cout << std::endl;
 
         if (winner != -1)
-            std::cout << "Player " << determine_winner() << " is the winner!" << std::endl;
+            std::cout << "Player " << winner << " is the winner!" << std::endl;
     }
 
     bool check_integrity() const;
