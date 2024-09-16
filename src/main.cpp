@@ -8,7 +8,7 @@
 #include "maxn_strategy.h"
 #include "basic_heuristic.h"
 
-std::vector<int> run_random_game(std::vector<Strategy*>& strategy, bool verbose, int seed = std::random_device()()) {
+std::vector<int> run_game(std::vector<Strategy*>& strategy, bool verbose = false, int seed = std::random_device()()) {
     int player_count = strategy.size();
     GameState game(player_count, verbose, seed);
 
@@ -37,20 +37,20 @@ std::vector<int> run_random_game(std::vector<Strategy*>& strategy, bool verbose,
     }
 }
 
-std::vector<int> run_random_game(int player_count, Strategy* my_strategy, bool verbose, int seed = std::random_device()()) {
+std::vector<int> run_random_game(int player_count, Strategy* my_strategy = new RandomStrategy(), bool verbose = false, int seed = std::random_device()()) {
     std::vector<Strategy*> strategies;
     strategies.reserve(player_count);
     strategies.push_back(my_strategy);
     for (int i = 0; i < player_count - 1; i++)
         strategies.push_back(new RandomStrategy());
 
-    return run_random_game(strategies, verbose, seed);
+    return run_game(strategies, verbose, seed);
 }
 
 void stress_test_integrity() {
     for (int i = 0; i < 1000; i++) {
         int player_count = rand() % 3 + 3; // 3, 4, 5
-        run_random_game(player_count, new RandomStrategy, false);
+        run_random_game(player_count);
     }
     std::cout << "Integrity stress test passed" << std::endl;
 }
@@ -68,14 +68,14 @@ void measure_winrate() {
         
         for (int j = 0; j < player_count; j++) {
             if (j == my_idx)
-                //strategies.push_back(new SimpleHeuristicStrategy(new BasicHeuristic()));
-                strategies.push_back(new MaxnStrategy(3));
-            else
-                //strategies.push_back(new RandomStrategy());
                 strategies.push_back(new SimpleHeuristicStrategy(new BasicHeuristic()));
+                //strategies.push_back(new MaxnStrategy(3));
+            else
+                strategies.push_back(new RandomStrategy());
+                //strategies.push_back(new SimpleHeuristicStrategy(new BasicHeuristic()));
         }
     
-        auto placements = run_random_game(strategies, false);
+        auto placements = run_game(strategies);
 
         if (placements[my_idx] == 0)
             win_count++;
@@ -90,10 +90,10 @@ int main() {
     srand(seed);
     std::cout << "Seed: " << seed << std::endl;
 
-    run_random_game(4, new MaxnStrategy(3), true, seed);
+    //run_random_game(4, new MaxnStrategy(3), true, seed);
 
     // TODO: Make legit Tests
-    //stress_test_integrity(); // Passing
+    stress_test_integrity(); // Passing
 
     //measure_winrate();
     // Expected winrate between 3-5 equally skilled players is 26%

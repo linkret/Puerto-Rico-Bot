@@ -40,23 +40,8 @@ std::vector<Action> TraderAction::get_legal_actions(const GameState& g, bool is_
         return actions;
 
     bool good_allowed[5] = {true, true, true, true, true};
-    bool has_office = false;
-    int sale_bonus = is_trader;
-
-    for (const auto& building : player.buildings) {
-        if (building.colonists != 1)
-            continue;
-
-        if (building.building.type == BuildingType::OFFICE) {
-            has_office = true;
-        }
-        else if (building.building.type == BuildingType::SMALL_MARKET) {
-            sale_bonus += 1;
-        }
-        else if (building.building.type == BuildingType::LARGE_MARKET) {
-            sale_bonus += 2;
-        }
-    }
+    bool has_office = player.has(BuildingType::OFFICE);
+    int sale_bonus = is_trader + (int)player.has(BuildingType::SMALL_MARKET) + 2 * (int)player.has(BuildingType::LARGE_MARKET);
 
     if (!has_office) {
         for (const auto& good : g.trading_house) {

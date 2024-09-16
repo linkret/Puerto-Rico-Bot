@@ -76,10 +76,7 @@ std::vector<Action> BuilderAction::get_legal_actions(const GameState& g, bool is
             continue;
 
         // do not allow building duplicates
-        if (std::find_if(player.buildings.begin(), player.buildings.end(), 
-            [&building](const BuildingState& player_building) {
-                return player_building.building.type == building.building.type;
-            }) != player.buildings.end())
+        if (player.has(building.building, false))
             continue;
 
         // do not allow building if not enough space
@@ -94,9 +91,7 @@ std::vector<Action> BuilderAction::get_legal_actions(const GameState& g, bool is
         }
     }
 
-    if (actions.empty()) {
-        actions.emplace_back(Building(BuildingType::NONE), 0);
-    }
+    actions.emplace_back(Building(BuildingType::NONE), 0);
 
     return actions;
 }

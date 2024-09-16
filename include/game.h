@@ -125,6 +125,12 @@ struct PlayerState {
         }
     }
 
+    bool has(Building building, bool check_colonist = true) const {
+        return std::find_if(buildings.begin(), buildings.end(), [building, check_colonist](const BuildingState& building_state) {
+            return building_state.building.type == building.type && (!check_colonist || building_state.colonists > 0);
+        }) != buildings.end();
+    }
+
     int get_total_goods() const {
         int total_goods = 0;
         for (int i = 0; i < 5; i++) {

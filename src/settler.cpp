@@ -73,17 +73,8 @@ std::vector<Action> SettlerAction::get_legal_actions(const GameState& g, bool is
 
     const auto& player = g.player_state[g.current_player_idx];
 
-    bool can_choose_quarry = is_settler;
-    bool has_hacienda = false;
-
-    for (const auto& building : player.buildings) {
-        if (building.colonists == 0)
-            continue;
-        if (building.building.type == BuildingType::CONSTRUCTION_HUT)
-            can_choose_quarry = true;
-        if (building.building.type == BuildingType::HACIENDA)
-            has_hacienda = true;
-    }
+    bool can_choose_quarry = is_settler || player.has(BuildingType::CONSTRUCTION_HUT);
+    bool has_hacienda = player.has(BuildingType::HACIENDA);
 
     if (g.plantation_supply.empty())
         has_hacienda = false; // can't use Hacienda if there are no plantations left

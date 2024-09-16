@@ -75,6 +75,7 @@ std::vector<Action> CraftsmanAction::get_legal_actions(const GameState& g, bool 
 
     std::vector<GoodSupply> producing = player.get_producing_goods();
 
+    // TODO: Current implementation might attempt to take a bonus Good that will not be available - we could deny this in advance if we wanted to
     for (const auto& good : producing) {
         if (good.count > 0) {
             actions.emplace_back(good.good);

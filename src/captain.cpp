@@ -96,14 +96,7 @@ std::vector<Action> CaptainAction::get_legal_actions(const GameState& g, bool is
 
     const auto& player = g.player_state[g.current_player_idx];
 
-    bool has_wharf = false;
-    for (const auto& building : player.buildings) {
-        if (building.colonists == 0)
-            continue;
-
-        if (building.building.type == BuildingType::WHARF)
-            has_wharf = true;
-    }
+    bool has_wharf = player.has(BuildingType::WHARF);
 
     for (const auto& ship : g.ships) {
         if (ship.is_wharf() && !(has_wharf && ship.owner == player.idx))

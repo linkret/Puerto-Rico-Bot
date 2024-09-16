@@ -25,11 +25,11 @@ public:
         double best_score = std::numeric_limits<int>::min();
 
         for (const auto& action : actions) {
-            GameState nextState = game;
-            nextState.perform_action(action);
+            GameState next_state = game;
+            next_state.perform_action(action);
 
             // Original simple max score heuristic
-            double score = evaluator->evaluate(nextState, player_idx);
+            double score = evaluator->evaluate(next_state, player_idx);
             if (score > best_score) {
                 best_score = score;
                 best_action = action;
