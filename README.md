@@ -15,7 +15,7 @@ The first, weaker bot Strategies use a classic minmax algorithm (for more than 2
 This heuristic function can then potentially be modified with reinfocement learning or a genetic algorithm. The bots simulate a large number of games among each other, and evolve their heuristic function to increase their winrates.
 A neural network could also be trained, if required. The minmax algorithm can then be sped up using shallow pruning. (Alpha-beta-pruning does not generalize to games with more than 2 players.)
 
-Studying which buildings and moves have high "rewards" in the heuristic function could even help to teach humans how to player better (as long as the heuristic is reversible and not overly complex).
+Studying which buildings and moves have high "rewards" in the heuristic function could even help to teach humans how to play better (as long as the heuristic is reversible and not overly complex).
 
 The stronger bots will use the **Monte Carlo Tree Search** algorithm to simulate random-runouts, allowing them to find strong moves without relying on any domain-specific evaluation function.
 This method is used by famous bots such as AlphaGo and AlphaZero. The MCTS algorithm can also be augmented by a strong heuristic to play even better. (Not yet implemented.)
