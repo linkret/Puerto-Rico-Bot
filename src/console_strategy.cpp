@@ -112,7 +112,7 @@ PlayerRole ConsoleStrategy::choose_role(GameState& game) const {
         }
     }
 
-    int role_idx = get_user_choice(&game, game.role_state.size(), "role");
+    int role_idx = get_user_choice(&game, roles.size(), "role");
 
     return roles[role_idx];
 }

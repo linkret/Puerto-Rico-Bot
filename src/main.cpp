@@ -95,13 +95,13 @@ void play_against_computer() {
 
     std::cout << "What position do you want to play?" << std::endl;
 
-    std::cout << "0: Random position" << std::endl;
     for (int p = 1; p <= player_count; p++) {
         std::cout << p << ": Position " << p << std::endl;
     }
+    std::cout << player_count + 1 << ": Random position" << std::endl;
 
-    auto my_idx = ConsoleStrategy::get_user_choice(nullptr, player_count, "player position", "play as", false);
-    if (my_idx == -1) {
+    auto my_idx = ConsoleStrategy::get_user_choice(nullptr, player_count + 1, "player position", "play as", false);
+    if (my_idx == player_count) {
         my_idx = rand() % player_count;
         std::cout << "Randomly selected position " << my_idx + 1 << std::endl;
     }
