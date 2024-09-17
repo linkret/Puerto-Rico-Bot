@@ -32,17 +32,17 @@ The project is currently easy to build by just executing something like:
 
 > g++ src/* -o main.exe -std=c++17 -I include -Wall
 
-I'll make a CMake file when I start needing it. My build command is also included in `.vscode/tasks.json`.
+I'll make a CMake file soon, too.
 
 ## Running the project
 
-> main.exe
+> ./main.exe
 
 Running the executable will let you play against the computer. First the program will ask you to setup a game. The game itself looks like this:
 
 ```
 Seed: 1726607175
-How many players do you want to play against?
+Player count:
 3 players
 4 players
 5 players
