@@ -43,24 +43,80 @@ I'll make a CMake file when I start needing it. My build command is also include
 Running the executable will let you play against the computer. First the program will ask you to setup a game. The game itself looks like this:
 
 ```
-Seed: 1726086293
-Player 0 chose Prospector and got 1 doubloon
-Player 1 chose Builder:
-Player 1 built a Construction Hut for 1 doubloons
-Player 2 built a Small Market for 1 doubloons
+Seed: 1726607175
+How many players do you want to play against?
+3 players
+4 players
+5 players
+Enter the number of the players you want to have in your game: 4
+What position do you want to play?
+1: Position 1
+2: Position 2
+3: Position 3
+4: Position 4
+5: Random position
+Enter the number of the player position you want to play as: 2
+Game starting...
+
+Player 0 chose role: Craftsman
+Player 0 got:
+Player 1 got:
+Player 2 got:
+Player 3 got:
+
+Choose an available role:
+1: Mayor
+X: Craftsman (taken)
+2: Trader
+3: Settler
+4: Builder
+5: Captain
+6: Prospector
+G or B: Print the entire current game state (G) or just your own board (B)
+Enter the number of the role you want to choose: 4
+You have 3 doubloons
+Choose a building to build:
+1: Small Indigo Plant (0 doubloons)
+2: Small Sugar Mill (1 doubloons)
+3: Small Market (0 doubloons)
+4: Hacienda (1 doubloons)
+5: Construction Hut (1 doubloons)
+6: Small Warehouse (2 doubloons)
+7: Large Indigo Plant (2 doubloons)
+8: Large Sugar Mill (3 doubloons)
+9: Hospice (3 doubloons)
+10: None (0 doubloons)
+G or B: Print the entire current game state (G) or just your own board (B)
+Enter the number of the building you want to build: 3
+Player 1 chose role: Builder
+Player 1 built a Small Market for 0 doubloons
+Player 2 built a Small Indigo Plant for 1 doubloons
 Player 3 built a Small Indigo Plant for 1 doubloons
-Player 0 built a Small Market for 1 doubloons
-Player 2 chose Mayor:
+Player 0 built a Small Indigo Plant for 1 doubloons
+
+Player 2 chose role: Mayor
 Player 2 took 1 extra Colonist from the supply
+Player 2 distributed Colonists:
+Buildings: Small Indigo Plant 1/1,
+Plantations: Corn 1/1,
+Player 3 distributed Colonists:
+Buildings: Small Indigo Plant 0/1,
+Plantations: Corn 1/1,
+Player 0 distributed Colonists:
+Buildings: Small Indigo Plant 0/1,
+Plantations: Indigo 1/1, 
+Your current colonist distribution:
+Extra Colonists: 1
+Buildings: Small Market 0/1,
+Plantations: Indigo 0/1,
+Choose whether to add or remove colonists:
+1: Add colonists
+2: Remove colonists
+3: Done
+Enter the number of the action you want to perform:
 ...
-Total Round count: 14
-Player 0 score: 17
-Player 1 score: 11
-Player 2 score: 20
-Player 3 score: 19
-Player 2 is the winner!
 ```
 
 ## Contributing
 
-Feel free to take a look around and contribute. I'm especially interested in any bugs or edge cases in the game simulation engine: please try playing against my bots!
+Feel free to take a look around and contribute. I'm especially interested in any bugs or edge cases in the game simulation engine. Please try playing against my bots and tell me what you think!
