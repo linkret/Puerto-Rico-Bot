@@ -67,7 +67,15 @@ std::vector<Action> BuilderAction::get_legal_actions(const GameState& g, bool is
 
     const auto& player = g.player_state[g.current_player_idx];
 
-    int doubloons = player.doubloons;
+    int builder_role_doubloons = 0;
+    for (const auto& role : g.role_state) {
+        if (role.role == PlayerRole::BUILDER) {
+            builder_role_doubloons = role.doubloons;
+            break;
+        }
+    }
+
+    int doubloons = player.doubloons + (is_builder ? builder_role_doubloons : 0);
     int quarries = player.get_querry_count();
 
     for (const auto& building : g.building_supply) {

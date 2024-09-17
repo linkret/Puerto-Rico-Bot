@@ -98,8 +98,7 @@ std::vector<Action> SettlerAction::get_legal_actions(const GameState& g, bool is
             actions.emplace_back(plantation);
     }
 
-    if (actions.empty())
-        actions.emplace_back(Plantation::NONE); // we don't do this otherwise, even though it's legal
+    actions.emplace_back(Plantation::NONE);
 
     return actions;
 }

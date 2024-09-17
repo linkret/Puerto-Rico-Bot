@@ -70,12 +70,12 @@ struct RoleState {
 struct ProductionDistribution {
     int w[6] = {0, 0, 0, 0, 0, 0}; // corn, indigo, sugar, tobacco, coffee, querry;
 
-    int corn() const { return w[0]; }
-    int indigo() const { return w[1]; }
-    int sugar() const { return w[2]; }
-    int tobacco() const { return w[3]; }
-    int coffee() const { return w[4]; }
-    int querry() const { return w[5]; }
+    int& corn() { return w[0]; }
+    int& indigo() { return w[1]; }
+    int& sugar() { return w[2]; }
+    int& tobacco() { return w[3]; }
+    int& coffee() { return w[4]; }
+    int& querry() { return w[5]; }
 };
 
 struct MayorAllocation {
@@ -86,6 +86,13 @@ struct MayorAllocation {
     MayorAllocation() = default;
     MayorAllocation(ProductionDistribution distribution, std::vector<BuildingType> buildings, int extra_colonists) 
         : distribution(distribution), buildings(buildings), extra_colonists(extra_colonists) {}
+
+    int colonists() const {
+        int total_colonists = buildings.size() + distribution.w[0] + distribution.w[5];
+        for (int i = 1; i < 5; i++)
+            total_colonists += 2 * distribution.w[i];
+        return total_colonists + extra_colonists;
+    }
 };
 
 struct PlayerState {
@@ -204,6 +211,7 @@ struct PlayerState {
         return free_slots;
     }
 
+    // TODO: don't use GoodSupply here, it's kinda dumb
     std::vector<GoodSupply> get_producing_goods(bool theoretical_maximum = false) const {
         std::vector<GoodSupply> producing_goods;
 
@@ -230,6 +238,38 @@ struct PlayerState {
         }
 
         return producing_goods;
+    }
+
+    void print_all(bool show_points = true) const {
+        std::cout << "_____PLAYER " << idx << "_____" << std::endl;
+        std::cout << "Doubloons: " << doubloons << std::endl;
+        if (show_points)
+            std::cout << "VP Chips: " << victory_points << std::endl;
+        std::cout << "Buildings: ";
+        for (const auto& building : buildings) {
+            std::cout << building.building.name() << " " << building.colonists << "/" << building.building.capacity() << ", ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "Plantations: ";
+        for (const auto& plantation : plantations) {
+            std::cout << plantation_name(plantation.plantation) << " " << plantation.colonists << "/1, ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "Goods: ";
+        for (int i = 0; i < 5; i++) {
+            if (goods[i] > 0)
+                std::cout << goods[i] << " " << GoodNames[i] << ", ";
+        }
+        std::cout << std::endl;
+
+        if (extra_colonists > 0)
+            std::cout << "Extra Colonists: " << extra_colonists << std::endl;
+
+        if (show_points)
+            std::cout << "Total Victory Points: " << get_total_victory_points() << std::endl;
+        std::cout << std::endl;
     }
 };
 
@@ -457,6 +497,9 @@ public:
     }
 
     void perform_action(const Action& action) {
+        if (action.type == PlayerRole::NONE)
+            throw std::runtime_error("Cannot perform action of type NONE");
+
         current_role = action.type;
 
         auto& player = player_state[current_player_idx];
@@ -533,9 +576,6 @@ public:
     void next_round() {
         // next player has to choose a role
 
-        if (verbose)
-            std::cout << std::endl;
-
         if (current_role == PlayerRole::SETTLER) {
             // refill plantation offer
 
@@ -607,6 +647,9 @@ public:
             }
         }
 
+        if (verbose)
+            std::cout << std::endl;
+
         current_role = PlayerRole::NONE;
         current_round_player_idx = (current_round_player_idx + 1) % player_count;
         current_player_idx = current_round_player_idx;
@@ -671,7 +714,7 @@ public:
         game_ending = true;
     }
 
-    void print_all() const {
+    void print_all(bool show_points = true) const {
         std::cout << "_____GAME STATE_____" << std::endl;
 
         std::cout << "Colonist supply: " << colonist_supply << std::endl;
@@ -705,38 +748,12 @@ public:
 
         std::cout << std::endl;
         for (const auto& player : player_state) {
-            std::cout << "_____PLAYER " << player.idx << "_____" << std::endl;
-            std::cout << "Doubloons: " << player.doubloons << std::endl;
-            std::cout << "VP Chips: " << player.victory_points << std::endl;
-            std::cout << "Buildings: ";
-            for (const auto& building : player.buildings) {
-                std::cout << building.building.name() << " " << building.colonists << "/" << building.building.capacity() << ", ";
-            }
-            std::cout << std::endl;
-
-            std::cout << "Plantations: ";
-            for (const auto& plantation : player.plantations) {
-                std::cout << plantation_name(plantation.plantation) << " " << plantation.colonists << "/1, ";
-            }
-            std::cout << std::endl;
-
-            std::cout << "Goods: ";
-            for (int i = 0; i < 5; i++) {
-                if (player.goods[i] > 0)
-                    std::cout << player.goods[i] << " " << GoodNames[i] << ", ";
-            }
-            std::cout << std::endl;
-
-            if (player.extra_colonists > 0)
-                std::cout << "Extra Colonists: " << player.extra_colonists << std::endl;
-
-            std::cout << "Total Victory Points: " << player.get_total_victory_points() << std::endl;
-            std::cout << std::endl;
+            player.print_all(show_points);
         }
 
         std::cout << "Round count: " << round << std::endl;
 
-        for (int i = 0; i < player_count; i++) {
+        for (int i = 0; i < player_count && show_points; i++) {
             std::cout << "Player " << i << " score: " << player_state[i].get_total_victory_points() << std::endl;
         }
         std::cout << std::endl;

@@ -216,7 +216,7 @@ std::vector<Action> MayorAction::get_legal_actions(const GameState& g, bool is_m
 
     auto rng = g.rng; // g.rng is const, therefore unusable for std::shuffle
 
-    for (const auto& dist : distributions) {
+    for (auto& dist : distributions) {
         int total_plantation = dist.corn() + 2 * dist.indigo() + 2 * dist.sugar() + 2 * dist.tobacco() + 2 * dist.coffee() + dist.querry();
         int total_building = total_colonists - total_plantation;
         int total_extra = std::max(0, total_building - int(nonprod_buildings.size()));
