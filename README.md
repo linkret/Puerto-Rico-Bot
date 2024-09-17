@@ -1,6 +1,6 @@
 ## About
 
-This repository contains bots for playing the popular board game **Puerto Rico**, written in C++. You can playing against them yourself, or watch them fight each other!
+This repository contains bots for playing the popular board game **Puerto Rico**, written in C++. You can play against them yourself, or watch them fight each other!
 
 Puerto Rico is a 3-5 player resource management game, similiar to "Castles of Burgundy", "Citadels" and "Settlers of Catan".
 
