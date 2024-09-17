@@ -1,6 +1,6 @@
 ## About
 
-This repository contains bots for playing the popular board game **Puerto Rico**, written in C++.
+This repository contains bots for playing the popular board game **Puerto Rico**, written in C++. You can playing against them yourself, or watch them fight each other!
 
 Puerto Rico is a 3-5 player resource management game, similiar to "Castles of Burgundy", "Citadels" and "Settlers of Catan".
 
@@ -40,7 +40,7 @@ I'll make a CMake file when I start needing it. My build command is also include
 
 > main.exe
 
-Running the executable will produce output that looks like this:
+Running the executable will let you play against the computer. First the program will ask you to setup a game. The game itself looks like this:
 
 ```
 Seed: 1726086293
@@ -63,4 +63,4 @@ Player 2 is the winner!
 
 ## Contributing
 
-Feel free to take a look around and contribute. I'm especially interested in any bugs or edge cases in the game simulation engine. This will also become easier to test as soon as I implement playing versus the bots from the console window. (Human vs. Computer support)
+Feel free to take a look around and contribute. I'm especially interested in any bugs or edge cases in the game simulation engine: please try playing against my bots!
