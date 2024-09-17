@@ -22,9 +22,7 @@ This method is used by famous bots such as AlphaGo and AlphaZero. The MCTS algor
 
 Read more about MTCS here: https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
 
-Currently running main.cpp will simulate a random game of Puerto Rico played by a medium-strength bot against 3 very bad bots who just make random legal moves. Information about every move and event is printed to the console.
-
-Initially the goal was to implement and verify 100% of the game rules (which there are a lot of).
+Currently running main.cpp will let you play against the computer - which uses the maxN algorithm with search-depth set to 5.
 
 The end goal is to make the bots unbeatable by normal humans!
 
