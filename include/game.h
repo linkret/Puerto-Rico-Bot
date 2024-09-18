@@ -294,12 +294,12 @@ struct Action {
     // TODO: it would be good if this class were smaller memory-wise - std::variant and switch case, std::get_if<BuilderAction>, etc.
     PlayerRole type;
 
-    Building building;
+    Building building = BuildingType::NONE;
     Plantation plantation = Plantation::NONE;
-    int building_cost;
+    int building_cost = 0;
     Good good = Good::NONE;
-    int ship_capacity;
-    int sell_price;
+    int ship_capacity = 0;
+    int sell_price = 0;
     MayorAllocation mayor_allocation;
 
     Action() : type(PlayerRole::NONE) {}
