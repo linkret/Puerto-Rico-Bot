@@ -26,7 +26,7 @@ The reinforcement learning / heuristic evolution hasn't been implemented yet.
 
 Currently running `main.exe` will let you play against the computer - which is configured to use the MCTS algorithm (with search set to only 500 iterations). When I optimize the code to run faster, I'll up this iteration count. There's also an idea to give the bots a fixed amount of time (like 1000ms) for each move, and just output the best found move regardless of iteration count. This would also work for maxN() algorithm with iterative deepening!
 
-The end goal is to make the bots unbeatable by normal humans. It's already able to consistently beat me, and I consider myself a decent enough player.
+The end goal is to make the bots unbeatable by normal humans. The computer is already able to often beat me, and I consider myself a decent enough player.
 
 ## Building the project
 
