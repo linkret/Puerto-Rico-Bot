@@ -48,7 +48,7 @@ cd ..
 
 > ./main.exe
 
-Running the executable will let you play against the computer. The game itself looks like this:
+Running the executable will let you play against the computer. The game takes place in text-form inside your console - there is no GUI yet. The game itself looks like this:
 
 ```
 Seed: 1726607175
