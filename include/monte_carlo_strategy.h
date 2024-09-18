@@ -84,6 +84,10 @@ private:
             Node* node = tree_policy(root);
             double reward = default_policy(node);
             backup(node, reward);
+
+            if (root->children.size() == 1) { // doesn't make sense to continue search if there's only one move
+                return root->children[0]->action;
+            }
         }
         return root->best_action(); //root->best_child(0)->action;
     }

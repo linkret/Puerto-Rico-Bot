@@ -27,6 +27,11 @@ public:
         game.verbose = false; // don't print Actions in maxn() recursion
         std::vector<Action> actions = game.get_legal_actions();
 
+        if (actions.size() == 1) {
+            game.perform_action(actions[0]); // only one legal action, no need to evaluate
+            return;
+        }
+
         Choice best_choice = maxn(game, max_depth); // TODO: make this depth configurable
         game.verbose = verbose; // restore verbosity 
 

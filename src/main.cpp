@@ -63,7 +63,7 @@ void measure_winrate() {
     start = std::chrono::system_clock::now();
 
     int win_count = 0;
-    int game_count = 5; // would prefer 10000 
+    int game_count = 10; // would prefer 10000 
 
     for (int i = 0; i < game_count; i++) {
         int player_count = rand() % 3 + 3; // 3, 4, 5
@@ -74,11 +74,11 @@ void measure_winrate() {
         
         for (int j = 0; j < player_count; j++) {
             if (j == my_idx)
-                strategies.push_back(new MCTSStrategy(1000));
-                //strategies.push_back(new MaxnStrategy(5));
-            else
-                //strategies.push_back(new RandomStrategy());
+                //strategies.push_back(new MCTSStrategy(1000));
                 strategies.push_back(new MaxnStrategy(5));
+            else
+                strategies.push_back(new RandomStrategy());
+                //strategies.push_back(new MaxnStrategy(5));
                 //strategies.push_back(new SimpleHeuristicStrategy());
         }
     
@@ -122,7 +122,7 @@ void play_against_computer() {
             strategies.push_back(new ConsoleStrategy());
         else
             //strategies.push_back(new MaxnStrategy(5)); // TODO: Make this a parameter to offer multiple difficulties
-            strategies.push_back(new MCTSStrategy(500)); // TODO: Make this a parameter to offer multiple difficulties
+            strategies.push_back(new MCTSStrategy(500));
     }
 
     std::cout << "Game starting..." << std::endl << std::endl;
