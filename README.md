@@ -17,7 +17,7 @@ A neural network could also be trained, if required. The minmax algorithm can th
 
 Studying which buildings and moves have high "rewards" in the heuristic function could even help to teach humans how to play better (as long as the heuristic is reversible and not overly complex).
 
-The stronger bots will use the **Monte Carlo Tree Search** algorithm to simulate random-runouts, allowing them to find strong moves without relying on any domain-specific evaluation function.
+The stronger bots use the **Monte Carlo Tree Search** algorithm to simulate random-runouts, allowing them to find strong moves without relying on any domain-specific evaluation function.
 This method is used by famous bots such as AlphaGo and AlphaZero. The MCTS algorithm can also be augmented by a strong heuristic to play even better.
 
 Read more about MTCS here: https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
