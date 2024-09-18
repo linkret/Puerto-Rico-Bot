@@ -312,6 +312,26 @@ struct Action {
     Action(int ship_capacity, Good good, int bonus) : type(PlayerRole::CAPTAIN), good(good), ship_capacity(ship_capacity), sell_price(bonus) {}
     Action(ProductionDistribution dist, int bonus) // for storing Goods after Captain phase
         : type(PlayerRole::CAPTAIN), good(Good::NONE), sell_price(bonus), mayor_allocation(dist, {}, 0) {}
+
+    bool operator==(const Action& other) const {
+        if (type != other.type)
+            return false;
+
+        if (type == PlayerRole::BUILDER)
+            return building.type == other.building.type && building_cost == other.building_cost;
+        if (type == PlayerRole::SETTLER)
+            return plantation == other.plantation && building_cost == other.building_cost;
+        if (type == PlayerRole::CRAFTSMAN)
+            return good == other.good;
+        if (type == PlayerRole::TRADER)
+            return good == other.good && sell_price == other.sell_price;
+        if (type == PlayerRole::MAYOR)
+            return mayor_allocation.distribution.w[0] == other.mayor_allocation.distribution.w[0];
+        if (type == PlayerRole::CAPTAIN)
+            return good == other.good && ship_capacity == other.ship_capacity && sell_price == other.sell_price;
+
+        return true;
+    }
 };
 
 struct GameState {

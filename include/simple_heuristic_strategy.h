@@ -4,6 +4,7 @@
 #include "game.h"
 #include "strategy.h"
 #include "state_evaluator.h"
+#include "basic_heuristic.h"
 
 #include <numeric>
 
@@ -12,6 +13,7 @@ class SimpleHeuristicStrategy : public Strategy {
     StateEvaluator* evaluator;
 public:
     SimpleHeuristicStrategy(StateEvaluator* evaluator) : evaluator(evaluator) {}
+    SimpleHeuristicStrategy() : evaluator(new BasicHeuristic()) {}
     ~SimpleHeuristicStrategy() override { delete evaluator; };
 
     void make_move(GameState& game) override {

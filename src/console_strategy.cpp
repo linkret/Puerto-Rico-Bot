@@ -293,7 +293,7 @@ Action ConsoleStrategy::choose_mayor_action(GameState& game, const std::vector<A
 
     auto player = game.player_state[game.current_player_idx]; // copy
     int extra_colonists = actions.front().mayor_allocation.colonists() - player.get_total_colonists();
-    player.extra_colonists = extra_colonists;
+    player.extra_colonists += extra_colonists;
     Action action = mayor_action_from_player(player);
 
     while (true) {
