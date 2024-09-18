@@ -18,13 +18,15 @@ A neural network could also be trained, if required. The minmax algorithm can th
 Studying which buildings and moves have high "rewards" in the heuristic function could even help to teach humans how to play better (as long as the heuristic is reversible and not overly complex).
 
 The stronger bots will use the **Monte Carlo Tree Search** algorithm to simulate random-runouts, allowing them to find strong moves without relying on any domain-specific evaluation function.
-This method is used by famous bots such as AlphaGo and AlphaZero. The MCTS algorithm can also be augmented by a strong heuristic to play even better. (Not yet implemented.)
+This method is used by famous bots such as AlphaGo and AlphaZero. The MCTS algorithm can also be augmented by a strong heuristic to play even better.
 
 Read more about MTCS here: https://en.wikipedia.org/wiki/Monte_Carlo_tree_search
 
-Currently running main.cpp will let you play against the computer - which uses the maxN algorithm with search-depth set to 5.
+The reinforcement learning / heuristic evolution hasn't been implemented yet.
 
-The end goal is to make the bots unbeatable by normal humans!
+Currently running `main.exe` will let you play against the computer - which is configured to use the MCTS algorithm (with search set to only 500 iterations). When I optimize the code to run faster, I'll up this iteration count. There's also an idea to give the bots a fixed amount of time (like 1000ms) for each move, and just output the best found move regardless of iteration count. This would also work for maxN() algorithm with iterative deepening!
+
+The end goal is to make the bots unbeatable by normal humans. It's already able to consistently beat me, and I consider myself a decent enough player.
 
 ## Building the project
 
