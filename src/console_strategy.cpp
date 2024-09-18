@@ -230,13 +230,15 @@ Action ConsoleStrategy::choose_captain_keep_action(GameState& game, const std::v
 }
 
 Action ConsoleStrategy::choose_settler_action(GameState& game, const std::vector<Action>& actions) const {
-    // TODO: might want to print current player's plantations and buildings
-
     std::cout << "Choose a Plantation to settle:" << std::endl;
+    
     int i = 0;
     for (const auto& action : actions) {
         i++;
-        std::cout << i << ": " << plantation_name(action.plantation) << std::endl;
+        if (action.building_cost > 0) // Hacienda
+            std::cout << i << ": " << "Use Hacienda to get a bonus random Plantation" << std::endl;
+        else 
+            std::cout << i << ": " << plantation_name(action.plantation) << std::endl;
     }
 
     int plantation_idx = get_user_choice(&game, actions.size(), "Plantation", "settle");

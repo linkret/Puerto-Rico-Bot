@@ -86,7 +86,7 @@ void measure_winrate() {
 }
 
 void play_against_computer() {
-    std::cout << "How many players do you want to play against?" << std::endl;
+    std::cout << "Choose player count:" << std::endl;
     for (int p = 3; p <= 5; p++) {
         std::cout << p << " players" << std::endl;
     }

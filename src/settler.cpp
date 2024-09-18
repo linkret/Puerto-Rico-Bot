@@ -6,8 +6,8 @@
 void SettlerAction::perform(GameState& g, const Action& action) const {
     auto& player = g.player_state[g.current_player_idx];
 
-    if (action.building_cost > 0) {
-        // Hacienda used
+    if (action.building_cost > 0) { // Hacienda used
+        std::shuffle(g.plantation_supply.begin(), g.plantation_supply.end(), g.rng);
         auto random_plantation = g.plantation_supply.back();
         player.plantations.push_back({random_plantation, 0});
         g.plantation_supply.pop_back();
@@ -22,7 +22,6 @@ void SettlerAction::perform(GameState& g, const Action& action) const {
     g.hacienda_just_used = false;
 
     if (action.plantation != Plantation::NONE) {
-        // TODO: implement Hospice triggers for Settler phase
         bool has_hospice = false;
         for (const auto& building : player.buildings) {
             if (building.colonists == 0)
@@ -70,6 +69,9 @@ void SettlerAction::perform(GameState& g, const Action& action) const {
 
 std::vector<Action> SettlerAction::get_legal_actions(const GameState& g, bool is_settler) const {
     std::vector<Action> actions;
+
+    if (g.hacienda_just_used && g.current_player_idx == g.current_round_player_idx)
+        is_settler = true;
 
     const auto& player = g.player_state[g.current_player_idx];
 

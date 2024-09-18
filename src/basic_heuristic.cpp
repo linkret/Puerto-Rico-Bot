@@ -8,7 +8,7 @@ std::vector<double> BasicHeuristic::evaluate(const GameState &state) {
 
     if (state.is_game_over()) {
         for (int i = 0; i < state.player_count; i++)
-            score[i] = (i == state.winner) ? 100.0 : 0.0;
+            score[i] = (i == state.winner) ? 1000.0 : 0.0;
         return score;
     }
 
