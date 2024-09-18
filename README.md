@@ -34,11 +34,13 @@ The project can be built manually by executing something like:
 
 Alternatively, you can use CMake as per usual:
 
-> mkdir build
-> cd build
-> cmake ..
-> cmake --build .
-> cd ..
+```
+mkdir build
+cd build
+cmake ..
+cmake --build .
+cd ..
+```
 
 ## Running the project
 
