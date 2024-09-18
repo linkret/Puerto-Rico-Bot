@@ -28,17 +28,23 @@ The end goal is to make the bots unbeatable by normal humans!
 
 ## Building the project
 
-The project is currently easy to build by just executing something like:
+The project can be built manually by executing something like:
 
-> g++ src/* -o main.exe -std=c++17 -I include -Wall
+> g++ src/* -o main.exe -std=c++17 -I include -Wall -O2
 
-I'll make a CMake file soon, too.
+Alternatively, you can use CMake as per usual:
+
+> mkdir build
+> cd build
+> cmake ..
+> cmake --build .
+> cd ..
 
 ## Running the project
 
 > ./main.exe
 
-Running the executable will let you play against the computer. First the program will ask you to setup a game. The game itself looks like this:
+Running the executable will let you play against the computer. The game itself looks like this:
 
 ```
 Seed: 1726607175
